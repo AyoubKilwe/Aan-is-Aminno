@@ -26,93 +26,95 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 const isId = (id) => mongoose.isValidObjectId(id)
 const notFound = (res) => res.status(404).json({ error: 'Not found' })
 
-// The demo has one savings group. Create it on first use.
-async function currentGroup() {
-  return (await Group.findOne().sort({ createdAt: 1 })) || Group.create({ name: 'Hooyo Faadumo Group', savings: 5000, members: 10 })
+// ── In-memory copy of the data ──
+// Atlas is far away (each query ~350 ms, sometimes seconds), so reads come from this copy and are instant.
+// Every change is written to MongoDB first, then the copy is updated. The data is small, so this is cheap.
+const db = { groups: [], businesses: [], agreements: [], lessons: [] }
+const plain = (doc) => doc.toJSON()
+const byCreated = (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+const sameId = (a, b) => String(a) === String(b)
+
+async function reload() {
+  const [groups, businesses, agreements, lessons] = await Promise.all([
+    Group.find().sort({ createdAt: 1 }), Business.find().sort({ createdAt: 1 }),
+    Agreement.find().sort({ createdAt: -1 }), Lesson.find().sort({ seed: -1, order: 1, createdAt: -1 }),
+  ])
+  if (groups.length === 0) groups.push(await Group.create({ name: 'Hooyo Faadumo Group', savings: 5000, members: 10 }))
+  Object.assign(db, { groups: groups.map(plain), businesses: businesses.map(plain), agreements: agreements.map(plain), lessons: lessons.map(plain) })
 }
-async function investedBy(groupId) {
-  const [r] = await Agreement.aggregate([{ $match: { group: groupId } }, { $group: { _id: null, total: { $sum: '$amount' } } }])
-  return r?.total || 0
-}
+const replaceIn = (list, doc) => { const i = list.findIndex((x) => x.id === doc.id); if (i >= 0) list[i] = doc; return doc }
+
+// The demo app uses the first (oldest) group.
+const currentGroup = () => db.groups[0]
+const investedBy = (groupId) => db.agreements.filter((a) => sameId(a.group, groupId)).reduce((s, a) => s + a.amount, 0)
+const raisedFor = (bizId) => db.agreements.filter((a) => sameId(a.business, bizId)).reduce((s, a) => s + a.amount, 0)
+const withRaised = (b) => ({ ...b, raised: raisedFor(b.id) })
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, db: mongoose.connection.readyState === 1, ai: Boolean(GEMINI_KEY) }))
+// Re-read everything from MongoDB (the seed script calls this after it changes the data).
+app.post('/api/reload', wrap(async (_req, res) => { await reload(); res.json({ ok: true }) }))
 
 // ── Group ──
-app.get('/api/group', wrap(async (_req, res) => res.json(await currentGroup())))
+app.get('/api/group', (_req, res) => res.json(currentGroup()))
 app.put('/api/group', wrap(async (req, res) => {
-  const g = await currentGroup()
   const { name, savings, members } = req.body || {}
-  Object.assign(g, { name, savings, members })
-  await g.save()
-  res.json(g)
+  const doc = await Group.findByIdAndUpdate(currentGroup().id, { name, savings, members }, { new: true, runValidators: true })
+  res.json(replaceIn(db.groups, plain(doc)))
 }))
 
 // All savings groups with the money each can still invest (owners see this list).
-app.get('/api/groups', wrap(async (_req, res) => {
-  const [groups, totals] = await Promise.all([
-    Group.find().sort({ createdAt: 1 }),
-    Agreement.aggregate([{ $group: { _id: '$group', invested: { $sum: '$amount' }, count: { $sum: 1 } } }]),
-  ])
-  const byGroup = new Map(totals.map((x) => [String(x._id), x]))
-  res.json(groups.map((g) => {
-    const t = byGroup.get(String(g._id)) || { invested: 0, count: 0 }
-    return { ...g.toJSON(), invested: t.invested, deals: t.count, available: Math.max(0, Math.round(g.savings * (1 - RESERVE_RATIO)) - t.invested) }
+app.get('/api/groups', (_req, res) => {
+  res.json([...db.groups].sort(byCreated).map((g) => {
+    const mine = db.agreements.filter((a) => sameId(a.group, g.id))
+    const invested = mine.reduce((s, a) => s + a.amount, 0)
+    return { ...g, invested, deals: mine.length, available: Math.max(0, Math.round(g.savings * (1 - RESERVE_RATIO)) - invested) }
   }))
-}))
+})
 
 // ── Businesses ── (each one carries how much money groups have already put in)
-app.get('/api/businesses', wrap(async (_req, res) => {
-  const [list, totals] = await Promise.all([
-    Business.find().sort({ createdAt: 1 }),
-    Agreement.aggregate([{ $group: { _id: '$business', raised: { $sum: '$amount' } } }]),
-  ])
-  const raised = new Map(totals.map((x) => [String(x._id), x.raised]))
-  res.json(list.map((b) => ({ ...b.toJSON(), raised: raised.get(String(b._id)) || 0 })))
-}))
+app.get('/api/businesses', (_req, res) => res.json(db.businesses.map(withRaised)))
 app.post('/api/businesses', wrap(async (req, res) => {
   const b = req.body || {}
   const pitch = typeof b.pitch === 'string' ? { en: b.pitch, so: b.pitch } : b.pitch
-  const doc = await Business.create({
+  const doc = plain(await Business.create({
     name: b.name, owner: b.owner, area: b.area, category: b.category, years: b.years,
     monthlyProfit: b.monthlyProfit, amountNeeded: b.amountNeeded, hasRecords: b.hasRecords,
     hasGuarantor: b.hasGuarantor, competition: b.competition, perishable: b.perishable, halal: b.halal, pitch,
-  })
-  res.status(201).json(doc)
+  }))
+  db.businesses.push(doc)
+  res.status(201).json(withRaised(doc))
 }))
 app.patch('/api/businesses/:id/verify', wrap(async (req, res) => {
   const { key, value } = req.body || {}
   if (!isId(req.params.id) || !['visited', 'records', 'guarantor'].includes(key)) return res.status(400).json({ error: 'Bad request' })
   const doc = await Business.findByIdAndUpdate(req.params.id, { $set: { [`verified.${key}`]: Boolean(value) } }, { new: true })
   if (!doc) return notFound(res)
-  const [r] = await Agreement.aggregate([{ $match: { business: doc._id } }, { $group: { _id: null, raised: { $sum: '$amount' } } }])
-  return res.json({ ...doc.toJSON(), raised: r?.raised || 0 })
+  return res.json(withRaised(replaceIn(db.businesses, plain(doc))))
 }))
 
 // ── Agreements ──
-app.get('/api/agreements', wrap(async (_req, res) => {
-  const g = await currentGroup()
-  res.json(await Agreement.find({ group: g._id }).sort({ createdAt: -1 }))
-}))
+app.get('/api/agreements', (_req, res) => res.json(db.agreements.filter((a) => sameId(a.group, currentGroup().id))))
 app.post('/api/agreements', wrap(async (req, res) => {
   const { businessId, amount, share, duration } = req.body || {}
-  if (!isId(businessId)) return res.status(400).json({ error: 'Bad business' })
-  const [g, biz] = await Promise.all([currentGroup(), Business.findById(businessId)])
+  const g = currentGroup()
+  const biz = db.businesses.find((b) => b.id === businessId)
   if (!biz) return notFound(res)
   // The server checks the money too: never more than the savings minus the 20% reserve and what's already invested.
-  const available = Math.round(g.savings * (1 - RESERVE_RATIO)) - (await investedBy(g._id))
+  const available = Math.round(g.savings * (1 - RESERVE_RATIO)) - investedBy(g.id)
   const amt = Math.round(Number(amount))
   if (!(amt > 0) || amt > available) return res.status(400).json({ error: 'Amount is more than the money available', available })
-  const doc = await Agreement.create({
-    group: g._id, business: biz._id, businessName: biz.name, owner: biz.owner, area: biz.area,
+  const doc = plain(await Agreement.create({
+    group: g.id, business: biz.id, businessName: biz.name, owner: biz.owner, area: biz.area,
     amount: amt, share: Number(share), duration: Number(duration),
-  })
+  }))
+  db.agreements.unshift(doc)
   res.status(201).json(doc)
 }))
 app.post('/api/agreements/:id/payments', wrap(async (req, res) => {
   const amt = Math.round(Number(req.body?.amount))
   if (!isId(req.params.id) || !(amt > 0)) return res.status(400).json({ error: 'Bad request' })
   const doc = await Agreement.findByIdAndUpdate(req.params.id, { $push: { payments: { amount: amt, date: new Date() } } }, { new: true })
-  return doc ? res.json(doc) : notFound(res)
+  return doc ? res.json(replaceIn(db.agreements, plain(doc))) : notFound(res)
 }))
 
 // ── Lessons (videos) ──
@@ -125,24 +127,28 @@ const upload = multer({
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('video/')),
 })
 
-app.get('/api/lessons', wrap(async (_req, res) => res.json(await Lesson.find().sort({ seed: -1, order: 1, createdAt: -1 }))))
+app.get('/api/lessons', (_req, res) => res.json(db.lessons))
 app.post('/api/lessons', wrap(async (req, res) => {
   const { title, desc, kind, src } = req.body || {}
   if (!['youtube', 'url'].includes(kind) || !src || !String(title || '').trim()) return res.status(400).json({ error: 'Bad request' })
-  res.status(201).json(await Lesson.create({ title: String(title).trim(), desc: String(desc || '').trim(), kind, src }))
+  const doc = plain(await Lesson.create({ title: String(title).trim(), desc: String(desc || '').trim(), kind, src }))
+  db.lessons.push(doc)
+  res.status(201).json(doc)
 }))
 app.post('/api/lessons/upload', upload.single('video'), wrap(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Not a video' })
   const title = String(req.body?.title || '').trim() || req.file.originalname
-  res.status(201).json(await Lesson.create({ title, desc: String(req.body?.desc || '').trim(), kind: 'file', src: `/uploads/${req.file.filename}` }))
+  const doc = plain(await Lesson.create({ title, desc: String(req.body?.desc || '').trim(), kind: 'file', src: `/uploads/${req.file.filename}` }))
+  db.lessons.push(doc)
+  res.status(201).json(doc)
 }))
 app.delete('/api/lessons/:id', wrap(async (req, res) => {
-  if (!isId(req.params.id)) return res.status(400).json({ error: 'Bad request' })
-  const doc = await Lesson.findById(req.params.id)
+  const doc = db.lessons.find((l) => l.id === req.params.id)
   if (!doc) return notFound(res)
   if (doc.seed) return res.status(403).json({ error: 'Built-in lessons cannot be deleted' })
+  await Lesson.deleteOne({ _id: doc.id })
   if (doc.kind === 'file' && doc.src.startsWith('/uploads/')) fs.rm(path.join(UPLOADS, path.basename(doc.src)), { force: true }, () => {})
-  await doc.deleteOne()
+  db.lessons = db.lessons.filter((l) => l.id !== doc.id)
   res.json({ ok: true })
 }))
 app.use('/uploads', express.static(UPLOADS, { maxAge: '7d' }))
@@ -153,8 +159,9 @@ app.post('/api/ai', wrap(async (req, res) => {
   if (!String(question || '').trim()) return res.status(400).json({ error: 'Empty question' })
   if (!GEMINI_KEY) return res.status(503).json({ error: 'AI is not configured' })
 
-  const g = await currentGroup()
-  const [businesses, agreements] = await Promise.all([Business.find().lean(), Agreement.find({ group: g._id }).lean()])
+  const g = currentGroup()
+  const businesses = db.businesses
+  const agreements = db.agreements.filter((a) => sameId(a.group, g.id))
   const invested = agreements.reduce((s, a) => s + a.amount, 0)
   const contents = [
     ...history.slice(-10).map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: String(m.text).slice(0, 4000) }] })),
@@ -204,5 +211,7 @@ app.use((err, req, res, _next) => {
 })
 
 mongoose.connect(MONGODB_URI)
+  .then(reload)
+  .then(() => setInterval(() => reload().catch((e) => console.warn('Reload failed:', e.message)), 5 * 60 * 1000))
   .then(() => app.listen(PORT, () => console.log(`API ready on http://localhost:${PORT} (MongoDB: ${MONGODB_URI.replace(/\/\/[^@/]*@/, '//***@')})`)))
   .catch((e) => { console.error('Could not connect to MongoDB:', e.message); process.exit(1) })

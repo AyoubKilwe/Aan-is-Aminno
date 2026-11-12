@@ -5,7 +5,8 @@ import { scoreBusiness } from './trustScore.js'
 // can't be reached, a prepared answer is shown instead.
 export const hasKey = () => true
 
-export async function askAdvisor({ group, businesses, lang, history, question }) {
+export async function askAdvisor({ group, businesses, history, question }) {
+  const lang = 'so' // answers are always in Somali
   const past = history.some((m) => m.role === 'user') ? history.slice(history.findIndex((m) => m.role === 'user')) : []
   try {
     const res = await fetch('/api/ai', {

@@ -117,15 +117,34 @@ function AppMain({ lang, setLang }) {
     setMineIds((ids) => [saved.id, ...ids])
     return saved
   }
-  const addAgreement = async (draft) => {
-    const saved = await api.addAgreement({ businessId: draft.bizId, amount: draft.amount, share: draft.share, duration: draft.duration })
-    setAgreements((list) => [saved, ...list])
-    setBusinesses((list) => list.map((b) => (b.id === draft.bizId ? { ...b, raised: (b.raised || 0) + saved.amount } : b)))
-    api.groups().then(setGroups).catch(() => {})
-    return saved
+  // The agreement appears at once; it is saved in the background. If saving fails, it is taken back off the screen.
+  const addAgreement = (draft) => {
+    const tmpId = `tmp-${Date.now()}`
+    const temp = { ...draft, id: tmpId, business: draft.bizId, payments: [], pending: true }
+    const addRaised = (n) => setBusinesses((list) => list.map((b) => (b.id === draft.bizId ? { ...b, raised: (b.raised || 0) + n } : b)))
+    setAgreements((list) => [temp, ...list])
+    addRaised(draft.amount)
+    api.addAgreement({ businessId: draft.bizId, amount: draft.amount, share: draft.share, duration: draft.duration })
+      .then((saved) => {
+        setAgreements((list) => list.map((a) => (a.id === tmpId ? saved : a)))
+        setDetail((d) => (d.agr === tmpId ? { ...d, agr: saved.id } : d))
+        api.groups().then(setGroups).catch(() => {})
+      })
+      .catch(() => {
+        setAgreements((list) => list.filter((a) => a.id !== tmpId))
+        addRaised(-draft.amount)
+        setDetail((d) => (d.agr === tmpId ? { ...d, agr: null } : d))
+        window.alert(t('save_error'))
+      })
+    return temp
   }
   const addPayment = async (id, amount) => {
-    try { replace(setAgreements)(await api.addPayment(id, amount)) } catch { window.alert(t('save_error')) }
+    const pay = { amount, date: new Date().toISOString() }
+    setAgreements((list) => list.map((a) => (a.id === id ? { ...a, payments: [...a.payments, pay] } : a))) // instant
+    try { replace(setAgreements)(await api.addPayment(id, amount)) } catch {
+      setAgreements((list) => list.map((a) => (a.id === id ? { ...a, payments: a.payments.filter((p) => p !== pay) } : a)))
+      window.alert(t('save_error'))
+    }
   }
   const shared = { t, lang, group, businesses, agreements, invested, go }
   const biz = businesses.find((b) => b.id === detail.biz)
@@ -145,13 +164,13 @@ function AppMain({ lang, setLang }) {
           biz={biz}
           onBack={() => setDetail((d) => ({ ...d, biz: null }))}
           onVerify={(key, val) => verifyBusiness(biz.id, key, val)}
-          onAsk={() => { setPendingQuestion(t('adv_evaluate', { name: biz.name })); go('advisor') }}
+          onAsk={() => { setPendingQuestion(makeT('so')('adv_evaluate', { name: biz.name })); go('advisor') }}
           onInvest={() => setSheet({ type: 'agreement', bizId: biz.id })}
         />
       )}
 
       {current === 'advisor' && (
-        <Advisor {...shared} chat={chat} setChat={setChat} pendingQuestion={pendingQuestion} clearPending={() => setPendingQuestion(null)} />
+        <Advisor {...shared} t={makeT('so')} lang="so" chat={chat} setChat={setChat} pendingQuestion={pendingQuestion} clearPending={() => setPendingQuestion(null)} />
       )}
 
       {current === 'agr' && !agr && <Agreements {...shared} />}
@@ -190,7 +209,7 @@ function AppMain({ lang, setLang }) {
           {...shared}
           biz={businesses.find((b) => b.id === sheet.bizId)}
           onCancel={() => setSheet(null)}
-          onCreate={async (draft) => { const saved = await addAgreement(draft); setSheet(null); go('agr', saved.id) }}
+          onCreate={(draft) => { const a = addAgreement(draft); setSheet(null); go('agr', a.id) }}
         />
       )}
     </div>

@@ -70,3 +70,9 @@ await Agreement.create({
 })
 console.log(`Seeded: ${groups.length} groups, ${businesses.length} businesses, 1 agreement, ${lessons.length} lessons → ${MONGODB_URI.replace(/\/\/[^@/]*@/, '//***@')}`)
 await mongoose.disconnect()
+
+// If the API is running, tell it to re-read the data (it keeps a copy in memory).
+try {
+  await fetch(`http://localhost:${Number(process.env.API_PORT) || 4000}/api/reload`, { method: 'POST', signal: AbortSignal.timeout(15000) })
+  console.log('Running API reloaded the new data.')
+} catch { /* API not running — it will load the data when it starts */ }

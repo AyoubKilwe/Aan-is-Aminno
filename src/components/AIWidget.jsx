@@ -21,7 +21,7 @@ const COPY = {
   so: {
     open: 'Weydii AI',
     title: 'Aan Is Aamino AI',
-    status: 'Af-Soomaali ama Ingiriis',
+    status: 'Waxaan kaga jawaabaa af-Soomaali',
     hello: 'Soo dhawoow! I weydii wax kasta oo ku saabsan maalgelinta hagbaddaada, ganacsi xalaal ah, ama sida app-kan u shaqeeyo.',
     q1: 'Dhibcaha kalsoonidu sidee bay u shaqeeyaan?',
     q2: 'Ganacsi noocee ah ayaan ku bilaabi karnaa $4,000?',
@@ -36,7 +36,7 @@ const COPY = {
 // Floating AI assistant for the landing page. Uses the same advisor as the app,
 // with the demo group and the local listings as context.
 export default function AIWidget({ lang }) {
-  const c = COPY[lang] || COPY.en
+  const c = COPY.so // the AI always speaks Somali, whatever language the page is in
   const [open, setOpen] = useState(false)
   const [chat, setChat] = useState([])
   const [input, setInput] = useState('')
@@ -60,7 +60,7 @@ export default function AIWidget({ lang }) {
     const history = chat.slice(-10)
     setChat((m) => [...m, { role: 'user', text: q }])
     setBusy(true)
-    const res = await askAdvisor({ group: DEFAULT_GROUP, businesses: SEED_BUSINESSES, lang, history, question: q })
+    const res = await askAdvisor({ group: DEFAULT_GROUP, businesses: SEED_BUSINESSES, lang: 'so', history, question: q })
     setChat((m) => [...m, { role: 'ai', text: res.text }])
     setBusy(false)
   }
