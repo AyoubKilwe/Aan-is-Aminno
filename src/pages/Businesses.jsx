@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import { TrustRing } from '../components/Rings.jsx'
-import { NavBar, Segmented } from '../components/UI.jsx'
+import { PageHead, Segmented } from '../components/UI.jsx'
 import { scoreBusiness, fmt } from '../lib/trustScore.js'
 import { RESERVE_RATIO } from '../data/businesses.js'
 
@@ -21,16 +21,11 @@ export default function Businesses({ t, group, businesses, invested, go, openReg
 
   return (
     <>
-      <NavBar
-        title={t('biz_title')}
-        trailing={
-          <button className="nav-btn" onClick={openRegister} aria-label={t('biz_list')}>
-            <Icon name="plus" size={24} />
-          </button>
-        }
-      />
       <main className="screen">
-        <h1 className="large-title">{t('biz_title')}</h1>
+        <PageHead title={t('biz_title')} sub={t('biz_sub')}>
+          <button className="btn btn-primary btn-auto" onClick={openRegister}><Icon name="plus" size={20} /> {t('biz_list')}</button>
+        </PageHead>
+        <div className="toolbar">
         <label className="search">
           <Icon name="search" size={18} />
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('biz_search')} aria-label={t('biz_search')} />
@@ -46,6 +41,7 @@ export default function Businesses({ t, group, businesses, invested, go, openReg
             { value: 'afford', label: t('biz_afford') },
           ]}
         />
+        </div>
 
         {rows.length === 0 ? (
           <div className="empty">

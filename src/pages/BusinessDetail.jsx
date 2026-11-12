@@ -11,7 +11,7 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
   return (
     <>
       <NavBar title={biz.name} onBack={onBack} backLabel={t('tab_biz')} />
-      <main className="screen">
+      <main className="screen narrow">
         <div className="detail-head">
           <TrustRing score={s.score} level={s.level} size={84} stroke={8} label={t('trust_of', { n: s.score })} />
           <div>

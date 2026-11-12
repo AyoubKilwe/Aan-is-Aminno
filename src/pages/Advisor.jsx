@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
-import { NavBar } from '../components/UI.jsx'
+import { PageHead } from '../components/UI.jsx'
 import { askAdvisor, hasKey } from '../lib/gemini.js'
 
 // Tiny formatter: **bold**, *italic*, line breaks. React escapes the text.
@@ -50,12 +50,10 @@ export default function Advisor({ t, lang, group, businesses, agreements, invest
 
   return (
     <>
-      <NavBar
-        title={t('adv_title')}
-        trailing={chat.length > 0 && <button className="nav-btn" onClick={() => setChat([])}>{t('adv_clear')}</button>}
-      />
-      <main className="screen">
-        <h1 className="large-title">{t('adv_title')}</h1>
+      <main className="screen narrow">
+        <PageHead title={t('adv_title')} sub={t('adv_sub')}>
+          {chat.length > 0 && <button className="btn btn-tinted btn-auto" onClick={() => setChat([])}>{t('adv_clear')}</button>}
+        </PageHead>
         <div className="ai-note">
           <Icon name="sparkle" size={16} />
           <span>{t('adv_ai')}{!hasKey() && <><br />{t('adv_offline')}</>}</span>
@@ -64,7 +62,7 @@ export default function Advisor({ t, lang, group, businesses, agreements, invest
         {chat.length === 0 && (
           <>
             <p className="secondary" style={{ margin: '16px 4px 10px' }}>{t('adv_empty')}</p>
-            <div className="suggestions">
+            <div className="suggestions grid">
               {['adv_q1', 'adv_q2', 'adv_q3'].map((k) => (
                 <button key={k} className="suggestion" onClick={() => send(t(k))}>
                   <Icon name="sparkle" size={18} /> {t(k)}
@@ -94,8 +92,10 @@ export default function Advisor({ t, lang, group, businesses, agreements, invest
       </main>
 
       <form className="composer" onSubmit={(e) => { e.preventDefault(); send(input) }}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t('adv_placeholder')} aria-label={t('adv_placeholder')} enterKeyHint="send" />
-        <button className="send-btn" disabled={busy || !input.trim()} aria-label={t('adv_send')}><Icon name="send" size={18} /></button>
+        <div className="composer-inner">
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t('adv_placeholder')} aria-label={t('adv_placeholder')} enterKeyHint="send" />
+          <button className="send-btn" disabled={busy || !input.trim()} aria-label={t('adv_send')}><Icon name="send" size={18} /></button>
+        </div>
       </form>
     </>
   )

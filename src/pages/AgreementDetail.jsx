@@ -25,7 +25,7 @@ export default function AgreementDetail({ t, lang, group, agr, onBack, onPayment
   return (
     <>
       <NavBar title={agr.businessName} onBack={onBack} backLabel={t('tab_agr')} />
-      <main className="screen">
+      <main className="screen narrow">
         <h1 className="title2" style={{ margin: '4px 0 2px' }}>{agr.businessName}</h1>
         <p className="footnote" style={{ margin: 0 }}>{t('agr_started', { d: dateFmt(agr.date) })} · {agr.owner}</p>
 

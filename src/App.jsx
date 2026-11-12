@@ -1,8 +1,21 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import Landing from './pages/Landing.jsx'
 import { makeT } from './i18n.js'
 import { usePersisted } from './lib/storage.js'
 import { SEED_BUSINESSES, DEFAULT_GROUP } from './data/businesses.js'
-import { TabBar } from './components/UI.jsx'
+import { TabBar, AppHeader } from './components/UI.jsx'
+
+// The landing page lives at "#/", the app at "#/app".
+function useRoute() {
+  const read = () => (window.location.hash.startsWith('#/app') ? 'app' : 'landing')
+  const [route, setRoute] = useState(read)
+  useEffect(() => {
+    const on = () => { setRoute(read()); window.scrollTo(0, 0) }
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  return route
+}
 import Home from './pages/Home.jsx'
 import Businesses from './pages/Businesses.jsx'
 import BusinessDetail from './pages/BusinessDetail.jsx'
@@ -13,7 +26,14 @@ import AgreementDetail from './pages/AgreementDetail.jsx'
 import AgreementSheet from './pages/AgreementSheet.jsx'
 
 export default function App() {
+  const route = useRoute()
   const [lang, setLang] = usePersisted('aia_lang', 'en')
+  useEffect(() => { document.documentElement.lang = lang }, [lang])
+  if (route === 'landing') return <Landing lang={lang} setLang={setLang} />
+  return <AppMain lang={lang} setLang={setLang} />
+}
+
+function AppMain({ lang, setLang }) {
   const [group, setGroup] = usePersisted('aia_group', DEFAULT_GROUP)
   const [businesses, setBusinesses] = usePersisted('aia_businesses_v3', SEED_BUSINESSES)
   const [agreements, setAgreements] = usePersisted('aia_agreements_v1', [])
@@ -51,8 +71,9 @@ export default function App() {
 
   return (
     <div className="app">
+      <AppHeader t={t} tab={tab} onTab={onTab} lang={lang} setLang={setLang} onLogo={() => { window.location.hash = '#/' }} />
       {tab === 'home' && (
-        <Home {...shared} setGroup={setGroup} setLang={setLang} openRegister={() => setSheet({ type: 'register' })} />
+        <Home {...shared} setGroup={setGroup} openRegister={() => setSheet({ type: 'register' })} />
       )}
 
       {tab === 'biz' && !biz && (

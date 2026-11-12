@@ -1,26 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Icon from './Icon.jsx'
+import Logo from './Logo.jsx'
 
-export function NavBar({ title, onBack, backLabel, trailing, showTitle }) {
-  const [scrolled, setScrolled] = useState(false)
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 30)
-    on()
-    window.addEventListener('scroll', on, { passive: true })
-    return () => window.removeEventListener('scroll', on)
-  }, [])
+export const TABS = [
+  { id: 'home', icon: 'home', key: 'tab_home' },
+  { id: 'biz', icon: 'store', key: 'tab_biz' },
+  { id: 'advisor', icon: 'advisor', key: 'tab_advisor' },
+  { id: 'agr', icon: 'doc', key: 'tab_agr' },
+]
+
+// Top bar of the app: logo, section links on desktop, language switch.
+export function AppHeader({ t, tab, onTab, lang, setLang, onLogo }) {
   return (
-    <header className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+    <header className="app-header">
+      <div className="app-header-inner">
+        <Logo size={34} onClick={onLogo} />
+        <nav className="app-nav" aria-label="Main">
+          {TABS.map((x) => (
+            <button key={x.id} className={tab === x.id ? 'on' : ''} onClick={() => onTab(x.id)} aria-current={tab === x.id ? 'page' : undefined}>
+              <Icon name={x.icon} size={18} /> {t(x.key)}
+            </button>
+          ))}
+        </nav>
+        <div className="header-end">
+          <Segmented label={t('language')} value={lang} onChange={setLang} options={[{ value: 'en', label: 'EN' }, { value: 'so', label: 'SO' }]} />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export function PageHead({ title, sub, children }) {
+  return (
+    <div className="page-head">
+      <div>
+        <h1 className="large-title">{title}</h1>
+        {sub && <p>{sub}</p>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// Back bar for pushed detail views.
+export function NavBar({ onBack, backLabel, trailing }) {
+  return (
+    <div className="navbar">
       <div>
         {onBack && (
           <button className="nav-btn" onClick={onBack}>
-            <Icon name="back" size={24} /> {backLabel}
+            <Icon name="back" size={20} /> {backLabel}
           </button>
         )}
       </div>
-      {(showTitle || scrolled) && title && <div className="navbar-title">{title}</div>}
       <div>{trailing}</div>
-    </header>
+    </div>
   )
 }
 
@@ -53,13 +87,7 @@ export function Segmented({ options, value, onChange, wide, label }) {
   return (
     <div className={`segmented ${wide ? 'wide' : ''}`} role="radiogroup" aria-label={label}>
       {options.map((o) => (
-        <button
-          key={o.value}
-          role="radio"
-          aria-checked={value === o.value}
-          className={value === o.value ? 'on' : ''}
-          onClick={() => onChange(o.value)}
-        >
+        <button key={o.value} role="radio" aria-checked={value === o.value} className={value === o.value ? 'on' : ''} onClick={() => onChange(o.value)}>
           {o.label}
         </button>
       ))}
@@ -67,26 +95,15 @@ export function Segmented({ options, value, onChange, wide, label }) {
   )
 }
 
-const TABS = [
-  { id: 'home', icon: 'home', key: 'tab_home' },
-  { id: 'biz', icon: 'store', key: 'tab_biz' },
-  { id: 'advisor', icon: 'advisor', key: 'tab_advisor' },
-  { id: 'agr', icon: 'doc', key: 'tab_agr' },
-]
-
 export function TabBar({ t, tab, onTab }) {
   return (
     <nav className="tabbar" aria-label="Main">
       {TABS.map((x) => (
         <button key={x.id} className={tab === x.id ? 'on' : ''} onClick={() => onTab(x.id)} aria-current={tab === x.id ? 'page' : undefined}>
-          <Icon name={x.icon} size={25} />
+          <Icon name={x.icon} size={24} />
           <span className="lbl">{t(x.key)}</span>
         </button>
       ))}
     </nav>
   )
-}
-
-export function levelBadge(level) {
-  return level === 'green' ? 'good' : level === 'yellow' ? 'caution' : 'bad'
 }
