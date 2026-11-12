@@ -50,5 +50,5 @@ await Promise.all([Group.deleteMany({}), Business.deleteMany({}), Agreement.dele
 await Group.create({ name: 'Hooyo Faadumo Group', savings: 5000, members: 10 })
 await Business.insertMany(businesses)
 await Lesson.insertMany(lessons)
-console.log(`Seeded: 1 group, ${businesses.length} businesses, ${lessons.length} lessons → ${MONGODB_URI}`)
+console.log(`Seeded: 1 group, ${businesses.length} businesses, ${lessons.length} lessons → ${MONGODB_URI.replace(/\/\/[^@/]*@/, '//***@')}`)
 await mongoose.disconnect()

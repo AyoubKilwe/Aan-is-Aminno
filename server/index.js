@@ -180,5 +180,5 @@ app.use((err, _req, res, _next) => {
 })
 
 mongoose.connect(MONGODB_URI)
-  .then(() => app.listen(PORT, () => console.log(`API ready on http://localhost:${PORT} (MongoDB: ${MONGODB_URI})`)))
+  .then(() => app.listen(PORT, () => console.log(`API ready on http://localhost:${PORT} (MongoDB: ${MONGODB_URI.replace(/\/\/[^@/]*@/, '//***@')})`)))
   .catch((e) => { console.error('Could not connect to MongoDB:', e.message); process.exit(1) })
