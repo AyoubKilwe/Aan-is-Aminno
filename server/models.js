@@ -57,6 +57,7 @@ const lessonSchema = new mongoose.Schema({
   src: { type: String, required: true },
   poster: String,
   seed: { type: Boolean, default: false },
+  order: { type: Number, default: 0 },
 }, opts)
 
 export const Group = mongoose.model('Group', groupSchema)

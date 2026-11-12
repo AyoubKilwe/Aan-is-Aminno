@@ -3,6 +3,7 @@
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import { Group, Business, Agreement, Lesson } from './models.js'
+import { SEED_LESSONS } from '../src/lib/videos.js'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/aan-is-aamino'
 
@@ -36,14 +37,8 @@ const businesses = [
     pitch: p('A market stall and a cart.', 'Miis suuq iyo gaari-gacan.') },
 ].map((b) => ({ halal: true, ...b }))
 
-const lessons = [
-  { seed: true, kind: 'file', src: '/videos/buugga-lacagta.mp4', poster: '/videos/buugga-lacagta.jpg',
-    title: p('The money record book', 'Buugga lacagta'),
-    desc: p('Write down sales and costs every day, and work out your profit.', 'Qor iibka iyo kharashka maalin kasta, oo xisaabi faa’iidada.') },
-  { seed: true, kind: 'file', src: '/videos/mudaaraba.mp4', poster: '/videos/mudaaraba.jpg',
-    title: p('What is Mudaraba?', 'Waa maxay Mudaaraba?'),
-    desc: p('How a halal profit-sharing investment works, with an example.', 'Sida maalgelinta xalaasha ah ee faa’iidada la qaybsado u shaqayso, iyo tusaale.') },
-]
+// Built-in lessons come from the app's list, in the same order.
+const lessons = SEED_LESSONS.map(({ id, ...l }, order) => ({ ...l, order }))
 
 // The first group is the one the demo app uses; the others show owners that more groups are investing.
 const groups = [

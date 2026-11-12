@@ -213,7 +213,9 @@ button.row:hover { background: var(--surface-2); }
 .sheet { width: 100%; max-width: 640px; height: calc(100dvh - 24px); background: var(--bg); border-radius: 20px 20px 0 0; display: flex; flex-direction: column; animation: slideup 0.28s cubic-bezier(0.2, 0.9, 0.3, 1); overflow: hidden; box-shadow: var(--shadow-lg); }
 @media (min-width: 700px) { .sheet-backdrop { align-items: center; } .sheet { height: min(820px, calc(100dvh - 48px)); border-radius: 20px; } .grabber { display: none; } }
 .sheet .navbar { width: 100%; margin: 0; flex: none; background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px; position: relative; max-width: none; }
-.sheet .navbar-title { display: block; position: absolute; left: 50%; transform: translateX(-50%); font-weight: 700; white-space: nowrap; max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
+.sheet .navbar { display: grid; grid-template-columns: minmax(64px, auto) minmax(0, 1fr) minmax(64px, auto); gap: 8px; }
+.sheet .navbar > :last-child { justify-self: end; }
+.sheet .navbar-title { display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; min-width: 0; }
 .sheet-body { flex: 1; overflow-y: auto; padding: 8px 16px calc(24px + env(safe-area-inset-bottom)); }
 .grabber { width: 36px; height: 5px; border-radius: 3px; background: #cbd5e1; margin: 6px auto; }
 @keyframes fadein { from { opacity: 0; } }
@@ -554,3 +556,16 @@ details.more[open] summary { margin-bottom: 8px; }
 .group-card .gc-money span { display: block; font-size: 12px; color: var(--muted); }
 .group-card .gc-money b { font-size: 18px; color: var(--primary); font-variant-numeric: tabular-nums; }
 .stack-list { display: grid; gap: 10px; }
+
+/* Score breakdown on the business page */
+.sc-who { display: flex; gap: 8px; align-items: flex-start; margin: -2px 4px 10px; font-size: 14px; color: var(--text-2); line-height: 1.5; }
+.sc-who .icon { color: var(--primary); flex: none; margin-top: 2px; }
+.sc-row .icon { flex: none; }
+.sc-row.ok > .icon { color: var(--good); }
+.sc-row.no > .icon { color: var(--bad); }
+.src-tag { display: inline-block; margin-top: 3px; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.src-tag.owner { background: var(--surface-2); color: var(--text-2); }
+.src-tag.app { background: #eff6ff; color: #1d4ed8; }
+.src-tag.group { background: var(--primary-soft); color: var(--primary); }
+.sc-total { font-weight: 700; background: var(--surface-2); }
+.sc-total b { font-size: 17px; }

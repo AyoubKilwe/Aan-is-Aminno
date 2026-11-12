@@ -54,7 +54,7 @@ export default function Learn({ t, lang, lessons, onAddLink, onUpload, onDelete 
             <div className="lesson-info">
               <b>{text(l.title, lang)}</b>
               {text(l.desc, lang) && <span>{text(l.desc, lang)}</span>}
-              <em>{l.seed ? t('learn_ours') : t('learn_added')}</em>
+              <em>{l.kind === 'youtube' && l.seed ? 'YouTube' : l.seed ? t('learn_ours') : t('learn_added')}</em>
             </div>
           </button>
         ))}

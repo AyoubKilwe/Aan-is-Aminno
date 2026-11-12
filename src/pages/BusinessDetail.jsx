@@ -9,9 +9,6 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
   const s = scoreBusiness(biz)
   const bad = paybackMonths(biz.amountNeeded, biz.monthlyProfit, 0.4, 0.3)
   const pitch = typeof biz.pitch === 'object' ? biz.pitch[lang] || biz.pitch.en : biz.pitch
-  const reasons = s.reasons.filter((r) => !('verifiedCount' in r))
-  const good = reasons.filter((r) => r.points > 0)
-  const warn = reasons.filter((r) => r.points === 0)
 
   return (
     <>
@@ -43,20 +40,27 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
           <div className="row kv warn"><span>{t('det_bad')}</span><span className="val tnum">{Number.isFinite(bad) ? t('months', { n: bad }) : '—'}</span></div>
         </div>
 
-        {good.length > 0 && (
-          <>
-            <h2 className="section-label">{t('d_good')}</h2>
-            <div className="group"><ul className="list-plain good">{good.map((r) => <li key={r.key}><Icon name="check" size={20} /> {t(r.key)}</li>)}</ul></div>
-          </>
-        )}
-        {warn.length > 0 && (
-          <>
-            <h2 className="section-label">{t('d_warn')}</h2>
-            <div className="group"><ul className="list-plain warn">{warn.map((r) => <li key={r.key}><Icon name="warn" size={20} /> {t(r.key)}</li>)}</ul></div>
-          </>
-        )}
+        <h2 className="section-label">{t('sc_title')}</h2>
+        <p className="sc-who"><Icon name="shield" size={18} /> {t('sc_who')}</p>
+        <div className="group">
+          {s.reasons.map((r) => {
+            const src = 'verifiedCount' in r ? 'group' : r.key.startsWith('r_payback') ? 'app' : 'owner'
+            return (
+              <div key={r.key} className={`row plain sc-row ${r.points ? 'ok' : 'no'}`}>
+                <Icon name={r.points ? 'check' : 'warn'} size={20} />
+                <div className="row-body">
+                  <div className="subhead">{t(r.key)}</div>
+                  <span className={`src-tag ${src}`}>{t(`src_${src}`)}</span>
+                </div>
+                <span className="pts">{r.points}/{r.max}</span>
+              </div>
+            )
+          })}
+          <div className="row plain sc-total"><span className="row-body">{t('sc_total')}</span><b>{s.score}/100</b></div>
+        </div>
 
         <h2 className="section-label">{t('d_check')}</h2>
+        <p className="sc-who">{t('d_check_sub')}</p>
         <div className="group">
           {VERIFY_CHECKS.map((k) => {
             const on = Boolean(biz.verified?.[k])
@@ -64,6 +68,7 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
               <button key={k} className="row" role="checkbox" aria-checked={on} onClick={() => onVerify(k, !on)}>
                 <span className={`check-box ${on ? 'on' : ''}`}><Icon name="check" size={16} /></span>
                 <span className="row-body subhead">{t(`v_${k}`)}</span>
+                <span className="pts">+5</span>
               </button>
             )
           })}

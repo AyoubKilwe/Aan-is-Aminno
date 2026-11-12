@@ -287,7 +287,7 @@ export default function Landing({ lang, setLang }) {
             <p className="l-sub">{c.v_sub}</p>
           </div>
           <div className="l-videos">
-            {SEED_LESSONS.map((l) => (
+            {SEED_LESSONS.slice(0, 2).map((l) => (
               <div key={l.id} className="l-video">
                 <Player lesson={l} />
                 <div className="l-video-text"><h3>{l.title[lang] || l.title.en}</h3><p>{l.desc[lang] || l.desc.en}</p></div>

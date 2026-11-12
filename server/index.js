@@ -125,7 +125,7 @@ const upload = multer({
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('video/')),
 })
 
-app.get('/api/lessons', wrap(async (_req, res) => res.json(await Lesson.find().sort({ seed: -1, createdAt: -1 }))))
+app.get('/api/lessons', wrap(async (_req, res) => res.json(await Lesson.find().sort({ seed: -1, order: 1, createdAt: -1 }))))
 app.post('/api/lessons', wrap(async (req, res) => {
   const { title, desc, kind, src } = req.body || {}
   if (!['youtube', 'url'].includes(kind) || !src || !String(title || '').trim()) return res.status(400).json({ error: 'Bad request' })
