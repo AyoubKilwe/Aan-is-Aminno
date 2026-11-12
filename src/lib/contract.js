@@ -1,10 +1,11 @@
 import { fmt } from './trustScore.js'
+import { formatDate } from './date.js'
 
 // Mudaraba: the group provides capital (Rabb-ul-Mal), the owner provides work (Mudarib).
 // Profit is shared by an agreed ratio; capital loss falls on the investor unless the manager was negligent.
 export function contractText({ lang, group, a }) {
   const ownerShare = 100 - a.share
-  const date = new Date(a.date).toLocaleDateString(lang === 'so' ? 'so-SO' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  const date = formatDate(a.date, lang)
   if (lang === 'so') {
     return `HESHIIS MUDAARABA
 Taariikh: ${date}

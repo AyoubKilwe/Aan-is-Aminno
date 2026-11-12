@@ -34,11 +34,10 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
           <div className="row plain kv"><span>{t('biz_payback')}</span><span className="val tnum">{Number.isFinite(s.months) ? t('months', { n: s.months }) : '—'}</span></div>
           <div className="row plain kv warn"><span>{t('det_bad')}</span><span className="val tnum">{Number.isFinite(bad) ? t('det_bad_val', { n: bad }) : '—'}</span></div>
         </div>
-        <p className="group-foot">{t('det_note')}</p>
 
         <h2 className="section-label">{t('det_why')}</h2>
         <div className="group">
-          {s.reasons.map((r) => (
+          {s.reasons.filter((r) => r.max !== 15 || !('verifiedCount' in r)).map((r) => (
             <div key={r.key} className={`row plain reason ${r.points ? 'ok' : 'no'}`}>
               <Icon name={r.points ? 'check' : 'warn'} size={20} />
               <span className="row-body subhead">{t(r.key)}</span>
@@ -60,7 +59,6 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
             )
           })}
         </div>
-        <p className="group-foot">{t('det_verify_sub')}</p>
 
         <div className="stack">
           <button className="btn btn-primary" onClick={onInvest}><Icon name="doc" size={20} /> {t('det_invest')}</button>

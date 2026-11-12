@@ -20,20 +20,30 @@ Group: "${group.name}", ${group.members} members, total savings $${group.savings
 Businesses currently seeking investment in their area:
 ${list}
 
-Rules:
-- Reply in ${lang === 'so' ? 'Somali' : 'English'}, in simple words a non-expert understands. Keep it short: at most 8 short lines or bullets.
+Language:
+- Answer in clear, natural Somali (Af-Soomaali) by default. ${lang === 'so' ? 'The app is set to Somali.' : 'The app is set to English: if the person writes in English, answer in English; if they write in Somali, answer in Somali.'}
+- Use everyday Somali words people in Mogadishu or Hargeisa use; avoid heavy jargon. Write money as $1,500.
+
+What you answer:
+- Answer every question the person asks — business, money, savings, hagbad, Islamic finance, how to use this app, or general questions. Never refuse just because a question is off-topic; answer it helpfully and briefly.
+- For investment questions, use the group's real numbers and the listed businesses above.
+
+Style:
+- Short and direct: at most 8 short lines. Use simple bullet points with "- ". No headings, no tables.
 - Only halal advice: profit-sharing (Mudaraba / Musharaka), never interest (riba).
-- Always name the main risk and one practical way to reduce it (e.g. keep a record book, start small, split the money across two businesses, keep some savings aside).
-- Owner numbers are self-reported: remind them to verify in person (visit, see the record book, speak to the guarantor) before investing.
-- Never promise profit. Use the numbers above; if you estimate, say it is an estimate.
-- When suggesting a new business, prefer ones the women can run or supervise themselves and that fit their savings.`
+- For investment questions, name the main risk and one practical way to reduce it (keep a record book, start small, split the money across two businesses, keep the reserve).
+- Owner numbers are self-reported: remind them to verify in person before investing.
+- Never promise profit. If you estimate, say it is an estimate.
+- When suggesting a new business, prefer ones the women can run or supervise themselves and that fit the money available.`
 }
 
 export async function askAdvisor({ group, businesses, agreements = [], invested = 0, lang, history, question }) {
   if (!hasKey()) return { text: fallbackAnswer(question, group, businesses, lang), offline: true }
 
+  // The conversation must start with a user turn.
+  const past = history.slice(history.findIndex((m) => m.role === 'user'))
   const contents = [
-    ...history.map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
+    ...(history.some((m) => m.role === 'user') ? past : []).map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
     { role: 'user', parts: [{ text: question }] },
   ]
 

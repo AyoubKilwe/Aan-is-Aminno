@@ -15,7 +15,7 @@ export default function Home({ t, group, setGroup, businesses, invested, go, ope
   return (
     <>
       <main className="screen">
-        <PageHead title={t('home_title')} sub={`${group.name} · ${t('home_members', { n: group.members })}`} />
+        <PageHead title={group.name} sub={t('home_members', { n: group.members })} />
 
         <div className="home-grid">
           <section className="hero" aria-label={t('home_savings')}>
@@ -28,8 +28,7 @@ export default function Home({ t, group, setGroup, businesses, invested, go, ope
               <div><dt><span className="swatch" style={{ background: 'var(--gold)' }} />{t('home_invested')}</dt><dd className="tnum">{fmt(invested)}</dd></div>
               <div><dt>{t('home_reserve')}</dt><dd className="tnum">{fmt(reserve)}</dd></div>
             </dl>
-            <div className="hero-meta">
-              <span className="footnote">{t('home_plan_short', { reserve: fmt(reserve) })}</span>
+            <div className="hero-meta" style={{ justifyContent: 'center' }}>
               <button className="text-btn" onClick={() => setEditing(true)}>{t('home_edit')}</button>
             </div>
           </section>
@@ -68,16 +67,6 @@ export default function Home({ t, group, setGroup, businesses, invested, go, ope
                 <Icon name="chevron" size={18} className="chev" />
               </button>
             </div>
-
-            <h2 className="section-label">{t('home_how')}</h2>
-            <ol className="group steps">
-              {['home_how1', 'home_how2', 'home_how3', 'home_how4'].map((k, i) => (
-                <li key={k} className="row">
-                  <span className="step-num">{i + 1}</span>
-                  <span className="row-body subhead">{t(k)}</span>
-                </li>
-              ))}
-            </ol>
           </div>
         </div>
       </main>

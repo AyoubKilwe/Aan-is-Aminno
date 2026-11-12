@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx'
 import { NavBar } from '../components/UI.jsx'
 import { fmt } from '../lib/trustScore.js'
 import { contractText } from '../lib/contract.js'
+import { formatDate } from '../lib/date.js'
 
 export default function AgreementDetail({ t, lang, group, agr, onBack, onPayment }) {
   const [value, setValue] = useState('')
@@ -10,7 +11,7 @@ export default function AgreementDetail({ t, lang, group, agr, onBack, onPayment
   const got = agr.payments.reduce((s, p) => s + p.amount, 0)
   const pct = Math.min(100, Math.round((got / agr.amount) * 100))
   const text = contractText({ lang, group, a: agr })
-  const dateFmt = (d) => new Date(d).toLocaleDateString(lang === 'so' ? 'so-SO' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const dateFmt = (d) => formatDate(d, lang, true)
 
   const add = (e) => {
     e.preventDefault()

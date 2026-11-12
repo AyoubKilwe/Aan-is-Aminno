@@ -22,7 +22,7 @@ export default function Businesses({ t, group, businesses, invested, go, openReg
   return (
     <>
       <main className="screen">
-        <PageHead title={t('biz_title')} sub={t('biz_sub')}>
+        <PageHead title={t('biz_title')}>
           <button className="btn btn-primary btn-auto" onClick={openRegister}><Icon name="plus" size={20} /> {t('biz_list')}</button>
         </PageHead>
         <div className="toolbar">

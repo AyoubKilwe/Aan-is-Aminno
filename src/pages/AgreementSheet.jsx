@@ -36,7 +36,7 @@ export default function AgreementSheet({ t, lang, group, invested, biz, onCancel
         <TrustRing score={s.score} level={s.level} size={56} label={t('trust_of', { n: s.score })} />
         <div>
           <h2 className="title2" style={{ fontSize: 20 }}>{biz.name}</h2>
-          <div className="footnote">{t('agr_intro')}</div>
+          <div className="footnote">{biz.owner} · {biz.area}</div>
         </div>
       </div>
 

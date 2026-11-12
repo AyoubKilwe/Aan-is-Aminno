@@ -5,7 +5,7 @@ import { askAdvisor, hasKey } from '../lib/gemini.js'
 
 // Tiny formatter: **bold**, *italic*, line breaks. React escapes the text.
 function Rich({ text }) {
-  return text.split('\n').map((l) => l.replace(/^\s*[*-]\s+/, '• ')).filter((l, i, a) => l.trim() || (i > 0 && a[i - 1].trim())).map((line, i) => (
+  return text.split('\n').map((l) => l.replace(/^\s*#+\s*/, '').replace(/^\s*[*-]\s+/, '• ')).filter((l, i, a) => l.trim() || (i > 0 && a[i - 1].trim())).map((line, i) => (
     <p key={i}>
       {line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, j) =>
         part.startsWith('**') ? <b key={j}>{part.slice(2, -2)}</b>
@@ -51,17 +51,12 @@ export default function Advisor({ t, lang, group, businesses, agreements, invest
   return (
     <>
       <main className="screen narrow">
-        <PageHead title={t('adv_title')} sub={t('adv_sub')}>
+        <PageHead title={t('adv_title')} sub={hasKey() ? t('adv_ai') : t('adv_offline')}>
           {chat.length > 0 && <button className="btn btn-tinted btn-auto" onClick={() => setChat([])}>{t('adv_clear')}</button>}
         </PageHead>
-        <div className="ai-note">
-          <Icon name="sparkle" size={16} />
-          <span>{t('adv_ai')}{!hasKey() && <><br />{t('adv_offline')}</>}</span>
-        </div>
 
         {chat.length === 0 && (
           <>
-            <p className="secondary" style={{ margin: '16px 4px 10px' }}>{t('adv_empty')}</p>
             <div className="suggestions grid">
               {['adv_q1', 'adv_q2', 'adv_q3'].map((k) => (
                 <button key={k} className="suggestion" onClick={() => send(t(k))}>
@@ -80,13 +75,6 @@ export default function Advisor({ t, lang, group, businesses, agreements, invest
             </div>
           ))}
           {busy && <div className="bubble ai typing" aria-label={t('adv_thinking')}><span /><span /><span /></div>}
-          {chat.length > 0 && !busy && (
-            <div className="suggestions" style={{ marginTop: 8 }}>
-              {['adv_q2', 'adv_q3'].map((k) => (
-                <button key={k} className="suggestion" onClick={() => send(t(k))}><Icon name="sparkle" size={18} /> {t(k)}</button>
-              ))}
-            </div>
-          )}
           <div ref={endRef} />
         </div>
       </main>

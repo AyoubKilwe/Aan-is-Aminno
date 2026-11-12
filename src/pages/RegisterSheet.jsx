@@ -126,7 +126,6 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
             </div>
           ))}
         </div>
-        <p className="group-foot">{t('reg_done_tip')}</p>
         <div className="stack">
           <button className="btn btn-primary" onClick={() => onView(biz.id)}>{t('reg_view')}</button>
         </div>
@@ -137,8 +136,7 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
   const last = step === steps.length - 1
   return (
     <Sheet title={t('reg_title')} onCancel={onCancel} cancelLabel={t('cancel')}>
-      <p className="subhead secondary" style={{ margin: '12px 4px 4px' }}>{t('reg_intro')}</p>
-      <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={step + 1}>
+      <div className="progress" style={{ marginTop: 16 }} role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={step + 1}>
         <div style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
       </div>
       <p className="footnote" style={{ margin: '0 4px 12px' }}>{t('reg_step', { a: step + 1, b: steps.length })}</p>

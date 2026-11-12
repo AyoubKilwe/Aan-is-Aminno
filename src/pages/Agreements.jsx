@@ -6,7 +6,7 @@ export default function Agreements({ t, agreements, go }) {
   return (
     <>
       <main className="screen narrow">
-        <PageHead title={t('agr_title')} sub={t('agr_sub')} />
+        <PageHead title={t('agr_title')} />
         {agreements.length === 0 ? (
           <div className="empty">
             <Icon name="doc" size={44} />
