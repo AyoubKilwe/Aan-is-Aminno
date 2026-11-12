@@ -47,8 +47,28 @@ app.put('/api/group', wrap(async (req, res) => {
   res.json(g)
 }))
 
-// ── Businesses ──
-app.get('/api/businesses', wrap(async (_req, res) => res.json(await Business.find().sort({ createdAt: 1 }))))
+// All savings groups with the money each can still invest (owners see this list).
+app.get('/api/groups', wrap(async (_req, res) => {
+  const [groups, totals] = await Promise.all([
+    Group.find().sort({ createdAt: 1 }),
+    Agreement.aggregate([{ $group: { _id: '$group', invested: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+  ])
+  const byGroup = new Map(totals.map((x) => [String(x._id), x]))
+  res.json(groups.map((g) => {
+    const t = byGroup.get(String(g._id)) || { invested: 0, count: 0 }
+    return { ...g.toJSON(), invested: t.invested, deals: t.count, available: Math.max(0, Math.round(g.savings * (1 - RESERVE_RATIO)) - t.invested) }
+  }))
+}))
+
+// ── Businesses ── (each one carries how much money groups have already put in)
+app.get('/api/businesses', wrap(async (_req, res) => {
+  const [list, totals] = await Promise.all([
+    Business.find().sort({ createdAt: 1 }),
+    Agreement.aggregate([{ $group: { _id: '$business', raised: { $sum: '$amount' } } }]),
+  ])
+  const raised = new Map(totals.map((x) => [String(x._id), x.raised]))
+  res.json(list.map((b) => ({ ...b.toJSON(), raised: raised.get(String(b._id)) || 0 })))
+}))
 app.post('/api/businesses', wrap(async (req, res) => {
   const b = req.body || {}
   const pitch = typeof b.pitch === 'string' ? { en: b.pitch, so: b.pitch } : b.pitch
@@ -63,7 +83,9 @@ app.patch('/api/businesses/:id/verify', wrap(async (req, res) => {
   const { key, value } = req.body || {}
   if (!isId(req.params.id) || !['visited', 'records', 'guarantor'].includes(key)) return res.status(400).json({ error: 'Bad request' })
   const doc = await Business.findByIdAndUpdate(req.params.id, { $set: { [`verified.${key}`]: Boolean(value) } }, { new: true })
-  return doc ? res.json(doc) : notFound(res)
+  if (!doc) return notFound(res)
+  const [r] = await Agreement.aggregate([{ $match: { business: doc._id } }, { $group: { _id: null, raised: { $sum: '$amount' } } }])
+  return res.json({ ...doc.toJSON(), raised: r?.raised || 0 })
 }))
 
 // ── Agreements ──

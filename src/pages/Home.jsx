@@ -2,14 +2,19 @@ import { useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import { Sheet } from '../components/UI.jsx'
 import { RoleBar } from './RoleSelect.jsx'
-import { fmt } from '../lib/trustScore.js'
+import { fmt, scoreBusiness } from '../lib/trustScore.js'
+import BizCard from '../components/BizCard.jsx'
 import { RESERVE_RATIO } from '../data/businesses.js'
 
-// Savings group home: their money in one card, then four big buttons.
-export default function Home({ t, group, setGroup, invested, agreements, go, onSwitchRole }) {
+// Savings group home: their money, then the businesses that need money (safest first), then other actions.
+export default function Home({ t, group, setGroup, invested, agreements, businesses, go, onSwitchRole }) {
   const [editing, setEditing] = useState(false)
   const reserve = Math.round(group.savings * RESERVE_RATIO)
   const available = Math.max(0, group.savings - reserve - invested)
+  const needing = businesses
+    .filter((b) => (b.raised || 0) < b.amountNeeded)
+    .map((b) => ({ b, score: scoreBusiness(b).score }))
+    .sort((x, y) => y.score - x.score)
 
   return (
     <main className="screen narrow">
@@ -27,9 +32,17 @@ export default function Home({ t, group, setGroup, invested, agreements, go, onS
         <button className="text-btn" onClick={() => setEditing(true)}>✎ {t('home_edit')}</button>
       </section>
 
-      <h2 className="section-label">{t('g_what')}</h2>
-      <div className="big-actions">
-        <button className="big-action" onClick={() => go('biz')}><span className="ba-ico"><Icon name="store" size={28} /></span>{t('act_biz')}</button>
+      <div className="home-head"><h2>{t('h_need')}</h2></div>
+      <p className="home-sub">{t('h_need_sub')}</p>
+      <div className="stack-list">
+        {needing.slice(0, 3).map(({ b }) => <BizCard key={b.id} t={t} b={b} onOpen={() => go('biz', b.id)} />)}
+      </div>
+      {needing.length > 3 && (
+        <button className="btn btn-tinted see-all" onClick={() => go('biz')}><Icon name="store" size={20} /> {t('h_all', { n: needing.length })}</button>
+      )}
+
+      <h2 className="section-label">{t('h_more')}</h2>
+      <div className="big-actions three">
         <button className="big-action" onClick={() => go('advisor')}><span className="ba-ico blue"><Icon name="sparkle" size={28} /></span>{t('act_ai')}</button>
         <button className="big-action" onClick={() => go('agr')}><span className="ba-ico gold"><Icon name="doc" size={28} /></span>{t('act_agr')}{agreements.length > 0 && ` (${agreements.length})`}</button>
         <button className="big-action" onClick={() => go('learn')}><span className="ba-ico rose"><Icon name="play" size={28} /></span>{t('act_learn')}</button>

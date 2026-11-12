@@ -50,17 +50,23 @@ function AppMain({ lang, setLang }) {
   const [businesses, setBusinesses] = useState([])
   const [agreements, setAgreements] = useState([])
   const [lessons, setLessons] = useState([])
+  const [groups, setGroups] = useState([])
 
   const load = useCallback(async () => {
     setStatus('loading')
-    try {
-      const [g, b, a, l] = await Promise.all([api.group(), api.businesses(), api.agreements(), api.lessons()])
-      setGroupState(g); setBusinesses(b); setAgreements(a); setLessons(l)
-      setStatus('ready')
-    } catch (e) {
-      console.error(e)
-      setStatus('error')
+    // The server can need a few seconds to reach the database after it starts, so try a few times before showing an error.
+    for (let attempt = 1; attempt <= 8; attempt++) {
+      try {
+        const [g, b, a, l, gs] = await Promise.all([api.group(), api.businesses(), api.agreements(), api.lessons(), api.groups()])
+        setGroupState(g); setBusinesses(b); setAgreements(a); setLessons(l); setGroups(gs)
+        setStatus('ready')
+        return
+      } catch (e) {
+        console.warn(`Loading data failed (attempt ${attempt}):`, e.message)
+        if (attempt < 8) await new Promise((r) => setTimeout(r, 2000))
+      }
     }
+    setStatus('error')
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -99,7 +105,7 @@ function AppMain({ lang, setLang }) {
   // ── Changes go to the server, then the screen updates with what the server saved ──
   const replace = (setter) => (doc) => setter((list) => list.map((x) => (x.id === doc.id ? doc : x)))
   const setGroup = async (g) => {
-    try { setGroupState(await api.saveGroup(g)) } catch { window.alert(t('save_error')) }
+    try { setGroupState(await api.saveGroup(g)); api.groups().then(setGroups).catch(() => {}) } catch { window.alert(t('save_error')) }
   }
   const verifyBusiness = async (id, key, value) => {
     setBusinesses((list) => list.map((b) => (b.id === id ? { ...b, verified: { ...b.verified, [key]: value } } : b))) // instant feedback
@@ -114,6 +120,8 @@ function AppMain({ lang, setLang }) {
   const addAgreement = async (draft) => {
     const saved = await api.addAgreement({ businessId: draft.bizId, amount: draft.amount, share: draft.share, duration: draft.duration })
     setAgreements((list) => [saved, ...list])
+    setBusinesses((list) => list.map((b) => (b.id === draft.bizId ? { ...b, raised: (b.raised || 0) + saved.amount } : b)))
+    api.groups().then(setGroups).catch(() => {})
     return saved
   }
   const addPayment = async (id, amount) => {
@@ -128,7 +136,7 @@ function AppMain({ lang, setLang }) {
       <AppHeader t={t} tabs={tabs} tab={current === 'agr' ? 'home' : current} onTab={onTab} lang={lang} setLang={setLang} onLogo={() => { window.location.hash = '#/' }} />
 
       {current === 'home' && <Home {...shared} setGroup={setGroup} onSwitchRole={switchRole} />}
-      {current === 'mine' && <OwnerHome t={t} businesses={businesses} mineIds={mineIds} openRegister={() => setSheet({ type: 'register' })} onSwitchRole={switchRole} />}
+      {current === 'mine' && <OwnerHome t={t} businesses={businesses} groups={groups} mineIds={mineIds} openRegister={() => setSheet({ type: 'register' })} onSwitchRole={switchRole} />}
 
       {current === 'biz' && !biz && <Businesses {...shared} />}
       {current === 'biz' && biz && (

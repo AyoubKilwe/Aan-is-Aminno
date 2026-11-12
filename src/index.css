@@ -506,6 +506,9 @@ input[type='range'] { width: 100%; accent-color: var(--primary); min-height: 32p
 .big-action .ba-ico.gold { background: var(--gold-soft); color: var(--caution); }
 .big-action .ba-ico.rose { background: #fff1f2; color: #be123c; }
 @media (min-width: 900px) { .big-actions { grid-template-columns: repeat(4, 1fr); } }
+.big-actions.three { grid-template-columns: repeat(3, 1fr); }
+.big-actions.three .big-action { padding: 16px 6px; font-size: 14px; }
+.big-actions.three .ba-ico { width: 48px; height: 48px; }
 
 .level-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
 .level-pill.green { background: var(--good-soft); color: var(--good); }
@@ -527,3 +530,27 @@ details.more summary { cursor: pointer; font-weight: 600; color: var(--primary);
 details.more summary::-webkit-details-marker { display: none; }
 details.more[open] summary { margin-bottom: 8px; }
 .page-back { margin: -8px 0 8px -10px; }
+
+/* ───────────── Business cards: place, funding, groups ───────────── */
+.biz-meta { display: flex; align-items: center; gap: 4px; margin: 2px 0 6px; font-size: 14px; color: var(--text-2); }
+.biz-meta .icon { color: var(--muted); flex: none; }
+.funding { display: grid; gap: 6px; }
+.funding-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 15px; color: var(--text-2); }
+.funding-top b { font-size: 18px; color: var(--text); }
+.funding-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.funding-bar span { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.funding-note { font-size: 13px; color: var(--primary); font-weight: 600; }
+.biz-back { font-size: 14px; color: var(--text-2); border-top: 1px solid var(--border); padding-top: 10px; }
+.biz-back b { color: var(--text); }
+.home-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin: 28px 2px 4px; }
+.home-head h2 { font-size: 20px; margin: 0; }
+.home-sub { margin: 0 2px 12px; font-size: 14px; color: var(--muted); }
+.see-all { width: 100%; margin-top: 12px; }
+.group-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.group-ava { width: 48px; height: 48px; border-radius: 14px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; flex: none; }
+.group-card b { display: block; font-size: 16px; }
+.group-card .gc-meta { font-size: 13px; color: var(--muted); }
+.group-card .gc-money { margin-left: auto; text-align: right; }
+.group-card .gc-money span { display: block; font-size: 12px; color: var(--muted); }
+.group-card .gc-money b { font-size: 18px; color: var(--primary); font-variant-numeric: tabular-nums; }
+.stack-list { display: grid; gap: 10px; }

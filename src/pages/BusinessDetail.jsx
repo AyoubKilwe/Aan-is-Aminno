@@ -1,6 +1,7 @@
 import Icon from '../components/Icon.jsx'
 import { TrustRing } from '../components/Rings.jsx'
 import { NavBar } from '../components/UI.jsx'
+import { Funding } from '../components/BizCard.jsx'
 import { scoreBusiness, paybackMonths, fmt, VERIFY_CHECKS } from '../lib/trustScore.js'
 
 // One business, in plain words: what it is, the numbers, good signs, warnings, then actions.
@@ -26,6 +27,7 @@ export default function BusinessDetail({ t, lang, biz, onBack, onVerify, onAsk, 
             </div>
           </div>
           {pitch && <p style={{ margin: '16px 0 0', fontSize: 16 }}>{pitch}</p>}
+          <div style={{ marginTop: 16 }}><Funding t={t} b={biz} /></div>
         </div>
 
         <div className="stack" style={{ marginTop: 16 }}>

@@ -14,6 +14,7 @@ async function request(method, url, body) {
 export const api = {
   group: () => request('GET', '/api/group'),
   saveGroup: (g) => request('PUT', '/api/group', g),
+  groups: () => request('GET', '/api/groups'),
   businesses: () => request('GET', '/api/businesses'),
   addBusiness: (b) => request('POST', '/api/businesses', b),
   verify: (id, key, value) => request('PATCH', `/api/businesses/${id}/verify`, { key, value }),

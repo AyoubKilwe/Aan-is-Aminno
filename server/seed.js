@@ -45,10 +45,33 @@ const lessons = [
     desc: p('How a halal profit-sharing investment works, with an example.', 'Sida maalgelinta xalaasha ah ee faa’iidada la qaybsado u shaqayso, iyo tusaale.') },
 ]
 
+// The first group is the one the demo app uses; the others show owners that more groups are investing.
+const groups = [
+  { name: 'Hooyo Faadumo Group', savings: 5000, members: 10 },
+  { name: 'Ubax Women’s Hagbad', savings: 8000, members: 15 },
+  { name: 'Nabadoon Savings Circle', savings: 3500, members: 8 },
+]
+
 await mongoose.connect(MONGODB_URI)
-await Promise.all([Group.deleteMany({}), Business.deleteMany({}), Agreement.deleteMany({}), Lesson.deleteMany({ seed: true })])
-await Group.create({ name: 'Hooyo Faadumo Group', savings: 5000, members: 10 })
-await Business.insertMany(businesses)
+// Replace only the demo data, so businesses and groups people added themselves are kept.
+const demoGroups = await Group.find({ name: { $in: groups.map((g) => g.name) } })
+const demoBiz = await Business.find({ name: { $in: businesses.map((b) => b.name) } })
+await Promise.all([
+  Agreement.deleteMany({ $or: [{ group: { $in: demoGroups.map((g) => g._id) } }, { business: { $in: demoBiz.map((b) => b._id) } }] }),
+  Group.deleteMany({ _id: { $in: demoGroups.map((g) => g._id) } }),
+  Business.deleteMany({ _id: { $in: demoBiz.map((b) => b._id) } }),
+  Lesson.deleteMany({ seed: true }),
+])
+const createdGroups = []
+for (const g of groups) createdGroups.push(await Group.create(g)) // one by one so the first group is created first
+const createdBiz = await Business.insertMany(businesses)
 await Lesson.insertMany(lessons)
-console.log(`Seeded: 1 group, ${businesses.length} businesses, ${lessons.length} lessons → ${MONGODB_URI.replace(/\/\/[^@/]*@/, '//***@')}`)
+
+// One example deal from another group, so funding progress shows up in the app.
+const hiran = createdBiz.find((b) => b.name === 'Hiran Henna & Beauty')
+await Agreement.create({
+  group: createdGroups[1]._id, business: hiran._id, businessName: hiran.name, owner: hiran.owner, area: hiran.area,
+  amount: 600, share: 40, duration: 12, payments: [{ amount: 150 }],
+})
+console.log(`Seeded: ${groups.length} groups, ${businesses.length} businesses, 1 agreement, ${lessons.length} lessons → ${MONGODB_URI.replace(/\/\/[^@/]*@/, '//***@')}`)
 await mongoose.disconnect()

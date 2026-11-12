@@ -8,7 +8,7 @@ import { RESERVE_RATIO } from '../data/businesses.js'
 // Three simple questions (how much, what share, how long), the result, then save.
 export default function AgreementSheet({ t, lang, group, invested, biz, onCancel, onCreate }) {
   const available = Math.max(0, Math.round(group.savings * (1 - RESERVE_RATIO) - invested))
-  const [amount, setAmount] = useState(Math.min(biz.amountNeeded, available))
+  const [amount, setAmount] = useState(Math.min(Math.max(0, biz.amountNeeded - (biz.raised || 0)) || biz.amountNeeded, available))
   const [share, setShare] = useState(40)
   const [duration, setDuration] = useState(24)
   const s = scoreBusiness(biz)
