@@ -172,9 +172,11 @@ if (fs.existsSync(dist)) {
 }
 
 // Validation errors → 400 with a readable message; everything else → 500.
-app.use((err, _req, res, _next) => {
-  if (err instanceof mongoose.Error.ValidationError || err instanceof mongoose.Error.CastError) return res.status(400).json({ error: err.message })
-  if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message })
+app.use((err, req, res, _next) => {
+  if (err instanceof mongoose.Error.ValidationError || err instanceof mongoose.Error.CastError || err instanceof multer.MulterError) {
+    console.warn(`400 ${req.method} ${req.path}: ${err.message}`)
+    return res.status(400).json({ error: err.message })
+  }
   console.error(err)
   res.status(500).json({ error: 'Server error' })
 })

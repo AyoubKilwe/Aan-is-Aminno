@@ -108,8 +108,9 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
     try {
       const saved = await onAdd(biz) // saved in MongoDB, now visible to every group
       setResult({ biz: saved, s: scoreBusiness(saved) })
-    } catch {
-      setSaveError(true)
+    } catch (e) {
+      console.error('Register failed:', e)
+      setSaveError(e?.message || true)
     } finally {
       setSaving(false)
     }
@@ -150,7 +151,7 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
 
       {steps[step].body}
       {showError && <p className="error-text" role="alert" style={{ margin: '10px 4px' }}>{t('reg_required')}</p>}
-      {saveError && <p className="error-text" role="alert" style={{ margin: '10px 4px' }}>{t('save_error')}</p>}
+      {saveError && <p className="error-text" role="alert" style={{ margin: '10px 4px' }}>{t('save_error')}{typeof saveError === 'string' && <><br /><small>({saveError})</small></>}</p>}
 
       <div className={step > 0 ? 'btn-row' : 'stack'}>
         {step > 0 && <button className="btn btn-tinted" onClick={() => { setShowError(false); setSaveError(false); setStep(step - 1) }}>{t('back')}</button>}
