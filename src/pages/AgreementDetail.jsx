@@ -30,10 +30,11 @@ export default function AgreementDetail({ t, lang, group, agr, onBack, onPayment
         <h1 className="title2" style={{ margin: '4px 0 2px' }}>{agr.businessName}</h1>
         <p className="footnote" style={{ margin: 0 }}>{t('agr_started', { d: dateFmt(agr.date) })} · {agr.owner}</p>
 
-        <div className="group" style={{ marginTop: 16, padding: 16 }}>
-          <div className="kv"><span className="headline tnum">{fmt(got)}</span><span className="secondary tnum">{fmt(agr.amount)}</span></div>
-          <div className="meter" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div style={{ width: `${pct}%` }} /></div>
-          <p className="footnote" style={{ margin: '8px 0 0' }}>{t('agr_returned', { a: fmt(got), b: fmt(agr.amount) })} · {agr.share}% · {t('months', { n: agr.duration })}</p>
+        <div className="money-card" style={{ marginTop: 16 }}>
+          <div className="label">{t('agr_back_of', { b: fmt(agr.amount) })}</div>
+          <div className="big tnum" style={{ marginBottom: 8 }}>{fmt(got)}</div>
+          <div className="meter" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} style={{ background: 'rgba(255,255,255,0.2)' }}><div style={{ width: `${pct}%`, background: '#fbbf24' }} /></div>
+          <div className="label" style={{ marginTop: 10 }}>{t('agr_group')} {agr.share}% · {t('months', { n: agr.duration })}</div>
         </div>
 
         <h2 className="section-label">{t('agr_record')}</h2>
@@ -55,15 +56,17 @@ export default function AgreementDetail({ t, lang, group, agr, onBack, onPayment
           )}
         </div>
 
-        <h2 className="section-label">{t('agr_contract')}</h2>
-        <pre className="contract">{text}</pre>
         <div className="stack">
-          <a className="btn btn-wa" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer"><Icon name="share" size={20} /> {t('agr_whatsapp')}</a>
-          <div className="btn-row" style={{ marginTop: 0 }}>
+          <a className="btn btn-wa btn-lg" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer"><Icon name="share" size={20} /> {t('agr_whatsapp')}</a>
+        </div>
+        <details className="more">
+          <summary><Icon name="doc" size={18} /> {t('agr_full')}</summary>
+          <pre className="contract">{text}</pre>
+          <div className="btn-row">
             <button className="btn btn-tinted" onClick={copy}><Icon name={copied ? 'check' : 'copy'} size={20} /> {copied ? t('agr_copied') : t('agr_copy')}</button>
             <button className="btn btn-tinted" onClick={() => window.print()}><Icon name="print" size={20} /> {t('agr_print')}</button>
           </div>
-        </div>
+        </details>
       </main>
     </>
   )

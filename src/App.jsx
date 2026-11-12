@@ -3,9 +3,20 @@ import Landing from './pages/Landing.jsx'
 import { makeT } from './i18n.js'
 import { usePersisted } from './lib/storage.js'
 import { SEED_BUSINESSES, DEFAULT_GROUP } from './data/businesses.js'
-import { TabBar, AppHeader } from './components/UI.jsx'
+import { TabBar, AppHeader, TABS_BY_ROLE } from './components/UI.jsx'
+import RoleSelect from './pages/RoleSelect.jsx'
+import Home from './pages/Home.jsx'
+import OwnerHome from './pages/OwnerHome.jsx'
+import Businesses from './pages/Businesses.jsx'
+import BusinessDetail from './pages/BusinessDetail.jsx'
+import RegisterSheet from './pages/RegisterSheet.jsx'
+import Advisor from './pages/Advisor.jsx'
+import Agreements from './pages/Agreements.jsx'
+import AgreementDetail from './pages/AgreementDetail.jsx'
+import AgreementSheet from './pages/AgreementSheet.jsx'
+import Learn from './pages/Learn.jsx'
 
-// The landing page lives at "#/", the app at "#/app".
+// The landing page lives at "#/", the app at "#/app" ("#/app/learn" opens a tab directly).
 function useRoute() {
   const read = () => (window.location.hash.startsWith('#/app') ? 'app' : 'landing')
   const [route, setRoute] = useState(read)
@@ -16,44 +27,37 @@ function useRoute() {
   }, [])
   return route
 }
-import Home from './pages/Home.jsx'
-import Businesses from './pages/Businesses.jsx'
-import BusinessDetail from './pages/BusinessDetail.jsx'
-import RegisterSheet from './pages/RegisterSheet.jsx'
-import Advisor from './pages/Advisor.jsx'
-import Agreements from './pages/Agreements.jsx'
-import AgreementDetail from './pages/AgreementDetail.jsx'
-import AgreementSheet from './pages/AgreementSheet.jsx'
-import Learn from './pages/Learn.jsx'
-
-const TAB_IDS = ['home', 'biz', 'advisor', 'agr', 'learn']
 
 export default function App() {
   const route = useRoute()
-  const [lang, setLang] = usePersisted('aia_lang', 'en')
+  const [lang, setLang] = usePersisted('aia_lang', 'so')
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   if (route === 'landing') return <Landing lang={lang} setLang={setLang} />
   return <AppMain lang={lang} setLang={setLang} />
 }
 
 function AppMain({ lang, setLang }) {
+  const [role, setRole] = usePersisted('aia_role', null) // 'group' | 'owner'
   const [group, setGroup] = usePersisted('aia_group', DEFAULT_GROUP)
   const [businesses, setBusinesses] = usePersisted('aia_businesses_v3', SEED_BUSINESSES)
+  const [mineIds, setMineIds] = usePersisted('aia_mine_v1', []) // businesses this owner registered
   const [agreements, setAgreements] = usePersisted('aia_agreements_v1', [])
   const [chat, setChat] = usePersisted('aia_chat_v2', [])
   const [lessons, setLessons] = usePersisted('aia_lessons_v1', [])
 
-  // Navigation: one tab bar, a pushed detail view per tab, and at most one sheet.
-  // "#/app/learn" opens a tab directly (used by the landing page).
-  const [tab, setTab] = useState(() => {
-    const id = window.location.hash.split('/')[2]
-    return TAB_IDS.includes(id) ? id : 'home'
-  })
+  const t = makeT(lang)
+  const tabs = role ? TABS_BY_ROLE[role] : []
+  const homeTab = role === 'owner' ? 'mine' : 'home'
+
+  const [tab, setTab] = useState(() => window.location.hash.split('/')[2] || null)
   const [detail, setDetail] = useState({}) // { biz: id, agr: id }
   const [sheet, setSheet] = useState(null) // { type: 'register' } | { type: 'agreement', bizId }
   const [pendingQuestion, setPendingQuestion] = useState(null)
 
-  const t = makeT(lang)
+  // Keep the open section valid for the chosen role ("agr" is reached from the group's home).
+  const allowed = role === 'group' ? ['home', 'biz', 'advisor', 'learn', 'agr'] : ['mine', 'advisor', 'learn']
+  const current = allowed.includes(tab) ? tab : homeTab
+
   const invested = agreements.reduce((s, a) => s + a.amount, 0)
 
   const go = useCallback((nextTab, detailId) => {
@@ -63,31 +67,28 @@ function AppMain({ lang, setLang }) {
   }, [])
 
   const onTab = (id) => {
-    // Tapping the current tab returns to its root, like iOS.
-    if (id === tab) setDetail((d) => ({ ...d, [id]: null }))
+    if (id === current) setDetail((d) => ({ ...d, [id]: null }))
     setTab(id)
     window.scrollTo(0, 0)
   }
 
-  const updateBusiness = (id, patch) =>
-    setBusinesses((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+  if (!role) return <RoleSelect t={t} lang={lang} setLang={setLang} onPick={(r) => { setRole(r); setTab(null) }} />
 
+  const switchRole = () => { setRole(null); setDetail({}); setSheet(null) }
+  const updateBusiness = (id, patch) => setBusinesses((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)))
   const shared = { t, lang, group, businesses, agreements, invested, go }
-
   const biz = businesses.find((b) => b.id === detail.biz)
   const agr = agreements.find((a) => a.id === detail.agr)
 
   return (
     <div className="app">
-      <AppHeader t={t} tab={tab} onTab={onTab} lang={lang} setLang={setLang} onLogo={() => { window.location.hash = '#/' }} />
-      {tab === 'home' && (
-        <Home {...shared} setGroup={setGroup} openRegister={() => setSheet({ type: 'register' })} />
-      )}
+      <AppHeader t={t} tabs={tabs} tab={current === 'agr' ? 'home' : current} onTab={onTab} lang={lang} setLang={setLang} onLogo={() => { window.location.hash = '#/' }} />
 
-      {tab === 'biz' && !biz && (
-        <Businesses {...shared} openRegister={() => setSheet({ type: 'register' })} />
-      )}
-      {tab === 'biz' && biz && (
+      {current === 'home' && <Home {...shared} setGroup={setGroup} onSwitchRole={switchRole} />}
+      {current === 'mine' && <OwnerHome t={t} businesses={businesses} mineIds={mineIds} openRegister={() => setSheet({ type: 'register' })} onSwitchRole={switchRole} />}
+
+      {current === 'biz' && !biz && <Businesses {...shared} />}
+      {current === 'biz' && biz && (
         <BusinessDetail
           {...shared}
           biz={biz}
@@ -98,40 +99,32 @@ function AppMain({ lang, setLang }) {
         />
       )}
 
-      {tab === 'advisor' && (
-        <Advisor
-          {...shared}
-          chat={chat}
-          setChat={setChat}
-          pendingQuestion={pendingQuestion}
-          clearPending={() => setPendingQuestion(null)}
-        />
+      {current === 'advisor' && (
+        <Advisor {...shared} chat={chat} setChat={setChat} pendingQuestion={pendingQuestion} clearPending={() => setPendingQuestion(null)} />
       )}
 
-      {tab === 'agr' && !agr && <Agreements {...shared} />}
-      {tab === 'agr' && agr && (
+      {current === 'agr' && !agr && <Agreements {...shared} />}
+      {current === 'agr' && agr && (
         <AgreementDetail
           {...shared}
           agr={agr}
           onBack={() => setDetail((d) => ({ ...d, agr: null }))}
           onPayment={(amount) =>
-            setAgreements((list) =>
-              list.map((a) => (a.id === agr.id ? { ...a, payments: [...a.payments, { amount, date: new Date().toISOString() }] } : a)),
-            )
+            setAgreements((list) => list.map((a) => (a.id === agr.id ? { ...a, payments: [...a.payments, { amount, date: new Date().toISOString() }] } : a)))
           }
         />
       )}
 
-      {tab === 'learn' && <Learn t={t} lang={lang} lessons={lessons} setLessons={setLessons} />}
+      {current === 'learn' && <Learn t={t} lang={lang} lessons={lessons} setLessons={setLessons} />}
 
-      <TabBar t={t} tab={tab} onTab={onTab} />
+      <TabBar t={t} tabs={tabs} tab={current === 'agr' ? 'home' : current} onTab={onTab} />
 
       {sheet?.type === 'register' && (
         <RegisterSheet
           t={t}
           onCancel={() => setSheet(null)}
-          onAdd={(b) => setBusinesses((list) => [b, ...list])}
-          onView={(id) => { setSheet(null); go('biz', id) }}
+          onAdd={(b) => { setBusinesses((list) => [b, ...list]); setMineIds((ids) => [b.id, ...ids]) }}
+          onView={() => { setSheet(null); go('mine') }}
         />
       )}
       {sheet?.type === 'agreement' && (
@@ -139,11 +132,7 @@ function AppMain({ lang, setLang }) {
           {...shared}
           biz={businesses.find((b) => b.id === sheet.bizId)}
           onCancel={() => setSheet(null)}
-          onCreate={(a) => {
-            setAgreements((list) => [a, ...list])
-            setSheet(null)
-            go('agr', a.id)
-          }}
+          onCreate={(a) => { setAgreements((list) => [a, ...list]); setSheet(null); go('agr', a.id) }}
         />
       )}
     </div>

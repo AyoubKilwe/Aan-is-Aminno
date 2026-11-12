@@ -1,10 +1,11 @@
 import Icon from '../components/Icon.jsx'
-import { PageHead } from '../components/UI.jsx'
+import { PageHead, NavBar } from '../components/UI.jsx'
 import { fmt } from '../lib/trustScore.js'
 
 export default function Agreements({ t, agreements, go }) {
   return (
     <>
+      <NavBar onBack={() => go('home')} backLabel={t('back_home')} />
       <main className="screen narrow">
         <PageHead title={t('agr_title')} />
         {agreements.length === 0 ? (

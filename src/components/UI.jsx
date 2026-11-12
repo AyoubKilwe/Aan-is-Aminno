@@ -2,22 +2,29 @@ import { useEffect } from 'react'
 import Icon from './Icon.jsx'
 import Logo from './Logo.jsx'
 
-export const TABS = [
-  { id: 'home', icon: 'home', key: 'tab_home' },
-  { id: 'biz', icon: 'store', key: 'tab_biz' },
-  { id: 'advisor', icon: 'advisor', key: 'tab_advisor' },
-  { id: 'agr', icon: 'doc', key: 'tab_agr' },
-  { id: 'learn', icon: 'play', key: 'tab_learn' },
-]
+// Each kind of user sees only the sections they need.
+export const TABS_BY_ROLE = {
+  group: [
+    { id: 'home', icon: 'home', key: 'tab_home' },
+    { id: 'biz', icon: 'store', key: 'tab_biz' },
+    { id: 'advisor', icon: 'advisor', key: 'tab_advisor' },
+    { id: 'learn', icon: 'play', key: 'tab_learn' },
+  ],
+  owner: [
+    { id: 'mine', icon: 'store', key: 'tab_mine' },
+    { id: 'advisor', icon: 'advisor', key: 'tab_advisor' },
+    { id: 'learn', icon: 'play', key: 'tab_learn' },
+  ],
+}
 
-// Top bar of the app: logo, section links on desktop, language switch.
-export function AppHeader({ t, tab, onTab, lang, setLang, onLogo }) {
+// Top bar of the app: logo with name, section links on desktop, language switch.
+export function AppHeader({ t, tabs = [], tab, onTab, lang, setLang, onLogo }) {
   return (
     <header className="app-header">
       <div className="app-header-inner">
         <Logo size={34} onClick={onLogo} />
         <nav className="app-nav" aria-label="Main">
-          {TABS.map((x) => (
+          {tabs.map((x) => (
             <button key={x.id} className={tab === x.id ? 'on' : ''} onClick={() => onTab(x.id)} aria-current={tab === x.id ? 'page' : undefined}>
               <Icon name={x.icon} size={18} /> {t(x.key)}
             </button>
@@ -96,10 +103,10 @@ export function Segmented({ options, value, onChange, wide, label }) {
   )
 }
 
-export function TabBar({ t, tab, onTab }) {
+export function TabBar({ t, tabs = [], tab, onTab }) {
   return (
-    <nav className="tabbar" aria-label="Main">
-      {TABS.map((x) => (
+    <nav className="tabbar" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+      {tabs.map((x) => (
         <button key={x.id} className={tab === x.id ? 'on' : ''} onClick={() => onTab(x.id)} aria-current={tab === x.id ? 'page' : undefined}>
           <Icon name={x.icon} size={24} />
           <span className="lbl">{t(x.key)}</span>

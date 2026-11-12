@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import Icon from '../components/Icon.jsx'
 import { Sheet } from '../components/UI.jsx'
-import { TrustRing } from '../components/Rings.jsx'
 import { scoreBusiness, paybackMonths, fmt } from '../lib/trustScore.js'
 import { contractText } from '../lib/contract.js'
 import { RESERVE_RATIO } from '../data/businesses.js'
 
+// Three simple questions (how much, what share, how long), the result, then save.
 export default function AgreementSheet({ t, lang, group, invested, biz, onCancel, onCreate }) {
   const available = Math.max(0, Math.round(group.savings * (1 - RESERVE_RATIO) - invested))
   const [amount, setAmount] = useState(Math.min(biz.amountNeeded, available))
@@ -25,53 +26,48 @@ export default function AgreementSheet({ t, lang, group, invested, biz, onCancel
     amount: amt, share, duration, date: new Date().toISOString(), payments: [],
   }
 
+  const Choices = ({ value, onChange, options, label }) => (
+    <div className="choice-row" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button type="button" key={o.value} role="radio" aria-checked={value === o.value} className={`choice ${value === o.value ? 'on' : ''}`} onClick={() => onChange(o.value)}>{o.label}</button>
+      ))}
+    </div>
+  )
+
   return (
-    <Sheet
-      title={t('agr_new')}
-      onCancel={onCancel}
-      cancelLabel={t('cancel')}
-      action={<button className="nav-btn strong" disabled={!valid} onClick={() => onCreate(draft)}>{t('save')}</button>}
-    >
-      <div className="detail-head" style={{ marginTop: 16 }}>
-        <TrustRing score={s.score} level={s.level} size={56} label={t('trust_of', { n: s.score })} />
-        <div>
-          <h2 className="title2" style={{ fontSize: 20 }}>{biz.name}</h2>
-          <div className="footnote">{biz.owner} · {biz.area}</div>
-        </div>
-      </div>
+    <Sheet title={biz.name} onCancel={onCancel} cancelLabel={t('cancel')}>
+      <p style={{ margin: '14px 4px' }}><span className={`level-pill ${s.level}`}>{t(`lvl_${s.level}`)}</span></p>
 
       <div className="group">
         <div className="field">
           <label htmlFor="a-amt">{t('agr_amount')}</label>
-          <input id="a-amt" type="number" inputMode="numeric" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={over} />
+          <input id="a-amt" type="number" inputMode="numeric" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={over} style={{ fontSize: 20, fontWeight: 700 }} />
           {over ? <span className="error-text">{t('agr_over', { n: fmt(available) })}</span> : <span className="hint">{t('agr_amount_hint', { n: fmt(available) })}</span>}
         </div>
         <div className="field">
-          <span className="label">{t('agr_split')}</span>
-          <div className="split"><span>{t('agr_group')} <b>{share}%</b></span><span>{t('agr_ownerShare')} <b>{100 - share}%</b></span></div>
-          <input type="range" min="10" max="90" step="5" value={share} onChange={(e) => setShare(Number(e.target.value))} aria-label={t('agr_split')} />
+          <span className="label">{t('agr_share_q')}</span>
+          <Choices label={t('agr_share_q')} value={share} onChange={setShare} options={[30, 40, 50].map((v) => ({ value: v, label: `${v}%` }))} />
         </div>
         <div className="field">
-          <span className="label">{t('agr_duration')}</span>
-          <div className="stepper">
-            <button type="button" onClick={() => setDuration(Math.max(6, duration - 6))} aria-label="−6">−</button>
-            <span className="tnum">{t('months', { n: duration })}</span>
-            <button type="button" onClick={() => setDuration(Math.min(60, duration + 6))} aria-label="+6">+</button>
-          </div>
+          <span className="label">{t('agr_months_q')}</span>
+          <Choices label={t('agr_months_q')} value={duration} onChange={setDuration} options={[12, 24, 36].map((v) => ({ value: v, label: t('months', { n: v }) }))} />
         </div>
       </div>
 
-      <div className="group" style={{ marginTop: 16 }}>
-        <div className="row plain kv"><span>{t('agr_expect')}</span><span className="val tnum">{t('agr_per_month', { n: fmt(monthly) })}</span></div>
-        <div className="row plain kv"><span>{t('biz_payback')}</span><span className="val tnum">{Number.isFinite(back) ? t('months', { n: back }) : '—'}</span></div>
+      <div className="money-card" style={{ marginTop: 16, padding: '16px 18px' }}>
+        <div className="label">{t('agr_expect')}</div>
+        <div className="big tnum" style={{ fontSize: 30, margin: '2px 0 6px' }}>{t('agr_per_month', { n: fmt(monthly) })}</div>
+        <div className="label">{t('card_back')}: <b style={{ color: '#fff' }}>{Number.isFinite(back) ? t('months', { n: back }) : '—'}</b></div>
       </div>
-
-      <h2 className="section-label">{t('agr_preview')}</h2>
-      <pre className="contract">{contractText({ lang, group, a: draft })}</pre>
 
       <div className="stack">
-        <button className="btn btn-primary" disabled={!valid} onClick={() => onCreate(draft)}>{t('agr_create')}</button>
+        <button className="btn btn-primary btn-lg" disabled={!valid} onClick={() => onCreate(draft)}><Icon name="check" size={20} /> {t('agr_create')}</button>
       </div>
+
+      <details className="more">
+        <summary><Icon name="doc" size={18} /> {t('agr_full')}</summary>
+        <pre className="contract">{contractText({ lang, group, a: draft })}</pre>
+      </details>
     </Sheet>
   )
 }
