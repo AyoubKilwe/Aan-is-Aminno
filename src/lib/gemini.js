@@ -5,16 +5,18 @@ const MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash'
 
 export const hasKey = () => Boolean(KEY && KEY !== 'PASTE_KEY_HERE')
 
-function buildContext(group, businesses, lang) {
+function buildContext(group, businesses, lang, agreements = [], invested = 0) {
+  const available = Math.max(0, Math.round(group.savings * 0.8 - invested))
   const list = businesses
     .map((b) => {
       const s = scoreBusiness(b)
-      return `- ${b.name} (${b.area}, ${b.category}): needs $${b.amountNeeded}, profit $${b.monthlyProfit}/month, running ${b.years} years, record book: ${b.hasRecords ? 'yes' : 'no'}, guarantor: ${b.hasGuarantor ? 'yes' : 'no'}, competition: ${b.competition}, perishable goods: ${b.perishable ? 'yes' : 'no'}, trust score ${s.score}/100, money back to group in ~${s.months} months at a 40% profit share.`
+      const v = b.verified || {}
+      return `- ${b.name} (${b.area}, ${b.category}), owner ${b.owner}, purpose "${typeof b.pitch === 'object' ? b.pitch.en : b.pitch || ''}": needs $${b.amountNeeded}, profit $${b.monthlyProfit}/month, running ${b.years} years, record book: ${b.hasRecords ? 'yes' : 'no'}, guarantor: ${b.hasGuarantor ? 'yes' : 'no'}, competition: ${b.competition}, perishable goods: ${b.perishable ? 'yes' : 'no'}, verified in person by a group: ${['visited', 'records', 'guarantor'].filter((k) => v[k]).join(', ') || 'nothing yet'}, trust score ${s.score}/100, money back to group in ~${s.months} months at a 40% profit share.`
     })
     .join('\n')
 
   return `You are the advisor inside "Aan Is Aamino", an app for a Somali women's savings group (hagbad) that wants to invest together.
-Group: "${group.name}", ${group.members} members, savings $${group.savings}.
+Group: "${group.name}", ${group.members} members, total savings $${group.savings}. They keep 20% as a safety reserve; $${invested} is already invested${agreements.length ? ` (${agreements.map((a) => `${a.businessName} $${a.amount}`).join(', ')})` : ''}; $${available} is available to invest now.
 Businesses currently seeking investment in their area:
 ${list}
 
@@ -22,11 +24,12 @@ Rules:
 - Reply in ${lang === 'so' ? 'Somali' : 'English'}, in simple words a non-expert understands. Keep it short: at most 8 short lines or bullets.
 - Only halal advice: profit-sharing (Mudaraba / Musharaka), never interest (riba).
 - Always name the main risk and one practical way to reduce it (e.g. keep a record book, start small, split the money across two businesses, keep some savings aside).
+- Owner numbers are self-reported: remind them to verify in person (visit, see the record book, speak to the guarantor) before investing.
 - Never promise profit. Use the numbers above; if you estimate, say it is an estimate.
 - When suggesting a new business, prefer ones the women can run or supervise themselves and that fit their savings.`
 }
 
-export async function askAdvisor({ group, businesses, lang, history, question }) {
+export async function askAdvisor({ group, businesses, agreements = [], invested = 0, lang, history, question }) {
   if (!hasKey()) return { text: fallbackAnswer(question, group, businesses, lang), offline: true }
 
   const contents = [
@@ -34,28 +37,34 @@ export async function askAdvisor({ group, businesses, lang, history, question })
     { role: 'user', parts: [{ text: question }] },
   ]
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: buildContext(group, businesses, lang, agreements, invested) }] },
+    contents,
+    // thinkingBudget 0: spend all tokens on the answer, and answer faster
+    generationConfig: { temperature: 0.6, maxOutputTokens: 1200, thinkingConfig: { thinkingBudget: 0 } },
+  })
+
+  // Free-tier models are sometimes busy (503) or rate-limited (429):
+  // retry once, then try a lighter model, then fall back to prepared answers.
+  const attempts = [MODEL, MODEL, 'gemini-2.5-flash-lite']
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${attempts[i]}:generateContent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: buildContext(group, businesses, lang) }] },
-          contents,
-          generationConfig: { temperature: 0.6, maxOutputTokens: 800 },
-        }),
-      },
-    )
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || ''
-    if (!text) throw new Error('empty')
-    return { text, offline: false }
-  } catch (e) {
-    console.warn('Gemini failed, using fallback:', e)
-    return { text: fallbackAnswer(question, group, businesses, lang), offline: true, error: true }
+        body,
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || ''
+      if (!text) throw new Error('empty')
+      return { text, offline: false }
+    } catch (e) {
+      console.warn(`Gemini attempt ${i + 1} (${attempts[i]}) failed:`, e.message)
+      if (i < attempts.length - 1) await new Promise((r) => setTimeout(r, 1200))
+    }
   }
+  return { text: fallbackAnswer(question, group, businesses, lang), offline: true, error: true }
 }
 
 // Prepared answers so the demo still works with no internet or no key.
