@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import Landing from './pages/Landing.jsx'
 import { makeT } from './i18n.js'
 import { usePersisted } from './lib/storage.js'
-import { SEED_BUSINESSES, DEFAULT_GROUP } from './data/businesses.js'
+import { DEFAULT_GROUP } from './data/businesses.js'
+import { api } from './lib/api.js'
+import Icon from './components/Icon.jsx'
+import Logo from './components/Logo.jsx'
 import { TabBar, AppHeader, TABS_BY_ROLE } from './components/UI.jsx'
 import RoleSelect from './pages/RoleSelect.jsx'
 import Home from './pages/Home.jsx'
@@ -37,13 +40,29 @@ export default function App() {
 }
 
 function AppMain({ lang, setLang }) {
+  // Only personal choices stay in the browser; shared data lives in MongoDB via the Express API.
   const [role, setRole] = usePersisted('aia_role', null) // 'group' | 'owner'
-  const [group, setGroup] = usePersisted('aia_group', DEFAULT_GROUP)
-  const [businesses, setBusinesses] = usePersisted('aia_businesses_v3', SEED_BUSINESSES)
-  const [mineIds, setMineIds] = usePersisted('aia_mine_v1', []) // businesses this owner registered
-  const [agreements, setAgreements] = usePersisted('aia_agreements_v1', [])
+  const [mineIds, setMineIds] = usePersisted('aia_mine_v2', []) // businesses this owner registered on this phone
   const [chat, setChat] = usePersisted('aia_chat_v2', [])
-  const [lessons, setLessons] = usePersisted('aia_lessons_v1', [])
+
+  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
+  const [group, setGroupState] = useState(DEFAULT_GROUP)
+  const [businesses, setBusinesses] = useState([])
+  const [agreements, setAgreements] = useState([])
+  const [lessons, setLessons] = useState([])
+
+  const load = useCallback(async () => {
+    setStatus('loading')
+    try {
+      const [g, b, a, l] = await Promise.all([api.group(), api.businesses(), api.agreements(), api.lessons()])
+      setGroupState(g); setBusinesses(b); setAgreements(a); setLessons(l)
+      setStatus('ready')
+    } catch (e) {
+      console.error(e)
+      setStatus('error')
+    }
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const t = makeT(lang)
   const tabs = role ? TABS_BY_ROLE[role] : []
@@ -73,9 +92,33 @@ function AppMain({ lang, setLang }) {
   }
 
   if (!role) return <RoleSelect t={t} lang={lang} setLang={setLang} onPick={(r) => { setRole(r); setTab(null) }} />
+  if (status !== 'ready') return <ServerState t={t} status={status} onRetry={load} />
 
   const switchRole = () => { setRole(null); setDetail({}); setSheet(null) }
-  const updateBusiness = (id, patch) => setBusinesses((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+
+  // ── Changes go to the server, then the screen updates with what the server saved ──
+  const replace = (setter) => (doc) => setter((list) => list.map((x) => (x.id === doc.id ? doc : x)))
+  const setGroup = async (g) => {
+    try { setGroupState(await api.saveGroup(g)) } catch { window.alert(t('save_error')) }
+  }
+  const verifyBusiness = async (id, key, value) => {
+    setBusinesses((list) => list.map((b) => (b.id === id ? { ...b, verified: { ...b.verified, [key]: value } } : b))) // instant feedback
+    try { replace(setBusinesses)(await api.verify(id, key, value)) } catch { load() }
+  }
+  const addBusiness = async (b) => {
+    const saved = await api.addBusiness(b)
+    setBusinesses((list) => [...list, saved])
+    setMineIds((ids) => [saved.id, ...ids])
+    return saved
+  }
+  const addAgreement = async (draft) => {
+    const saved = await api.addAgreement({ businessId: draft.bizId, amount: draft.amount, share: draft.share, duration: draft.duration })
+    setAgreements((list) => [saved, ...list])
+    return saved
+  }
+  const addPayment = async (id, amount) => {
+    try { replace(setAgreements)(await api.addPayment(id, amount)) } catch { window.alert(t('save_error')) }
+  }
   const shared = { t, lang, group, businesses, agreements, invested, go }
   const biz = businesses.find((b) => b.id === detail.biz)
   const agr = agreements.find((a) => a.id === detail.agr)
@@ -93,7 +136,7 @@ function AppMain({ lang, setLang }) {
           {...shared}
           biz={biz}
           onBack={() => setDetail((d) => ({ ...d, biz: null }))}
-          onVerify={(key, val) => updateBusiness(biz.id, { verified: { ...biz.verified, [key]: val } })}
+          onVerify={(key, val) => verifyBusiness(biz.id, key, val)}
           onAsk={() => { setPendingQuestion(t('adv_evaluate', { name: biz.name })); go('advisor') }}
           onInvest={() => setSheet({ type: 'agreement', bizId: biz.id })}
         />
@@ -109,13 +152,20 @@ function AppMain({ lang, setLang }) {
           {...shared}
           agr={agr}
           onBack={() => setDetail((d) => ({ ...d, agr: null }))}
-          onPayment={(amount) =>
-            setAgreements((list) => list.map((a) => (a.id === agr.id ? { ...a, payments: [...a.payments, { amount, date: new Date().toISOString() }] } : a)))
-          }
+          onPayment={(amount) => addPayment(agr.id, amount)}
         />
       )}
 
-      {current === 'learn' && <Learn t={t} lang={lang} lessons={lessons} setLessons={setLessons} />}
+      {current === 'learn' && (
+        <Learn
+          t={t}
+          lang={lang}
+          lessons={lessons}
+          onAddLink={async (l) => { const saved = await api.addLesson(l); setLessons((list) => [...list, saved]) }}
+          onUpload={async (form) => { const saved = await api.uploadLesson(form); setLessons((list) => [...list, saved]) }}
+          onDelete={async (id) => { await api.deleteLesson(id); setLessons((list) => list.filter((x) => x.id !== id)) }}
+        />
+      )}
 
       <TabBar t={t} tabs={tabs} tab={current === 'agr' ? 'home' : current} onTab={onTab} />
 
@@ -123,7 +173,7 @@ function AppMain({ lang, setLang }) {
         <RegisterSheet
           t={t}
           onCancel={() => setSheet(null)}
-          onAdd={(b) => { setBusinesses((list) => [b, ...list]); setMineIds((ids) => [b.id, ...ids]) }}
+          onAdd={addBusiness}
           onView={() => { setSheet(null); go('mine') }}
         />
       )}
@@ -132,9 +182,28 @@ function AppMain({ lang, setLang }) {
           {...shared}
           biz={businesses.find((b) => b.id === sheet.bizId)}
           onCancel={() => setSheet(null)}
-          onCreate={(a) => { setAgreements((list) => [a, ...list]); setSheet(null); go('agr', a.id) }}
+          onCreate={async (draft) => { const saved = await addAgreement(draft); setSheet(null); go('agr', saved.id) }}
         />
       )}
     </div>
+  )
+}
+
+// Shown while the data loads, or when the server can't be reached.
+function ServerState({ t, status, onRetry }) {
+  return (
+    <main className="role-screen">
+      <Logo size={40} />
+      {status === 'loading' ? (
+        <p style={{ marginTop: 40 }}>{t('srv_loading')}</p>
+      ) : (
+        <div className="empty" style={{ marginTop: 32 }}>
+          <Icon name="warn" size={40} />
+          <h2>{t('srv_error')}</h2>
+          <p>{t('srv_error_sub')}</p>
+          <button className="btn btn-primary" style={{ maxWidth: 240 }} onClick={onRetry}>{t('srv_retry')}</button>
+        </div>
+      )}
+    </main>
   )
 }

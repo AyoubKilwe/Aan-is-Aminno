@@ -28,7 +28,9 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
   const [step, setStep] = useState(0)
   const [showError, setShowError] = useState(false)
   const [result, setResult] = useState(null)
-  const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }))
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const set =(k) => (v) => setF((x) => ({ ...x, [k]: v }))
   const yesNo = [{ value: true, label: t('yes') }, { value: false, label: t('no') }]
 
   const steps = [
@@ -92,20 +94,25 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
     },
   ]
 
-  const next = () => {
+  const next = async () => {
     if (!steps[step].ok()) return setShowError(true)
     setShowError(false)
     if (step < steps.length - 1) return setStep(step + 1)
     const biz = {
       ...f,
-      id: `u${Date.now()}`,
       name: f.name.trim(), owner: f.owner.trim(), area: f.area.trim(), pitch: f.pitch.trim(),
       monthlyProfit: Math.round(Number(f.monthlyProfit)),
       amountNeeded: Math.round(Number(f.amountNeeded)),
-      verified: { visited: false, records: false, guarantor: false },
     }
-    onAdd(biz)
-    setResult({ biz, s: scoreBusiness(biz) })
+    setSaving(true)
+    try {
+      const saved = await onAdd(biz) // saved in MongoDB, now visible to every group
+      setResult({ biz: saved, s: scoreBusiness(saved) })
+    } catch {
+      setSaveError(true)
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (result) {
@@ -143,10 +150,11 @@ export default function RegisterSheet({ t, onCancel, onAdd, onView }) {
 
       {steps[step].body}
       {showError && <p className="error-text" role="alert" style={{ margin: '10px 4px' }}>{t('reg_required')}</p>}
+      {saveError && <p className="error-text" role="alert" style={{ margin: '10px 4px' }}>{t('save_error')}</p>}
 
       <div className={step > 0 ? 'btn-row' : 'stack'}>
-        {step > 0 && <button className="btn btn-tinted" onClick={() => { setShowError(false); setStep(step - 1) }}>{t('back')}</button>}
-        <button className="btn btn-primary" onClick={next}>{last ? t('reg_submit') : t('reg_next')}</button>
+        {step > 0 && <button className="btn btn-tinted" onClick={() => { setShowError(false); setSaveError(false); setStep(step - 1) }}>{t('back')}</button>}
+        <button className="btn btn-primary" disabled={saving} onClick={next}>{saving ? '…' : last ? t('reg_submit') : t('reg_next')}</button>
       </div>
     </Sheet>
   )

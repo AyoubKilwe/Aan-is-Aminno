@@ -14,12 +14,38 @@ A mobile-first web app that helps a women's savings group (**hagbad**) invest th
 
 English and Somali (EN / SO). Light and dark appearance follow the device. The design follows Apple's Human Interface Guidelines: tab bar for navigation only, sheets for tasks, 44px touch targets, and text contrast of at least 4.5:1.
 
+## Architecture
+```
+React (Vite, port 5173)  ──/api──▶  Express (port 4000)  ──▶  MongoDB (aan-is-aamino)
+                                           │
+                                           └──▶  Gemini API (key stays on the server)
+```
+| Collection | What it holds |
+|---|---|
+| `groups` | The savings group: name, total savings, members |
+| `businesses` | Listings with the owner's answers and in-person checks |
+| `agreements` | Mudaraba agreements and monthly profit payments |
+| `lessons` | Learn videos: built-in, YouTube links, uploaded files (`server/uploads/`) |
+
+### API
+| Method | Path | Does |
+|---|---|---|
+| GET/PUT | `/api/group` | Read / update the group |
+| GET/POST | `/api/businesses` | List / register a business (validated) |
+| PATCH | `/api/businesses/:id/verify` | Tick an in-person check |
+| GET/POST | `/api/agreements` | List / create (server refuses more than the money available) |
+| POST | `/api/agreements/:id/payments` | Record monthly profit |
+| GET/POST/DELETE | `/api/lessons`, `/api/lessons/upload` | Videos (built-in lessons can't be deleted) |
+| POST | `/api/ai` | Ask the advisor; the server reads live data from MongoDB and calls Gemini |
+
 ## Run
+Needs Node 18+ and MongoDB running locally (or a MongoDB Atlas URI).
 ```bash
 npm install
-cp .env.example .env   # then paste your free key from https://aistudio.google.com
-npm run dev
+cp .env.example .env     # add GEMINI_API_KEY; MONGODB_URI defaults to local MongoDB
+npm run seed             # demo data: 1 group, 8 businesses, 2 lessons
+npm run dev              # API on :4000 + app on http://localhost:5173
 ```
-Without a key, the advisor uses prepared offline answers.
+Production: `npm run build && npm start` serves the app and the API from port 4000.
 
 > Demo data: the listed businesses are sample data for the hackathon demo.

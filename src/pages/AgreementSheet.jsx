@@ -21,6 +21,13 @@ export default function AgreementSheet({ t, lang, group, invested, biz, onCancel
   const monthly = Math.round(biz.monthlyProfit * portion * (share / 100))
   const back = paybackMonths(amt, biz.monthlyProfit * portion, share / 100)
 
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const save = async () => {
+    setSaving(true); setError('')
+    try { await onCreate(draft) } catch { setError(t('save_error')); setSaving(false) }
+  }
+
   const draft = {
     id: `a${Date.now()}`, bizId: biz.id, businessName: biz.name, owner: biz.owner, area: biz.area,
     amount: amt, share, duration, date: new Date().toISOString(), payments: [],
@@ -60,8 +67,9 @@ export default function AgreementSheet({ t, lang, group, invested, biz, onCancel
         <div className="label">{t('card_back')}: <b style={{ color: '#fff' }}>{Number.isFinite(back) ? t('months', { n: back }) : '—'}</b></div>
       </div>
 
+      {error && <p className="error-text" role="alert" style={{ margin: '12px 4px 0' }}>{error}</p>}
       <div className="stack">
-        <button className="btn btn-primary btn-lg" disabled={!valid} onClick={() => onCreate(draft)}><Icon name="check" size={20} /> {t('agr_create')}</button>
+        <button className="btn btn-primary btn-lg" disabled={!valid || saving} onClick={save}><Icon name="check" size={20} /> {saving ? '…' : t('agr_create')}</button>
       </div>
 
       <details className="more">

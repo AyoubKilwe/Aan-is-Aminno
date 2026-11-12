@@ -1,25 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import { PageHead, Sheet, Segmented } from '../components/UI.jsx'
-import { SEED_LESSONS, parseVideoLink, ytThumb, ytEmbed, saveFile, loadFile, deleteFile } from '../lib/videos.js'
+import { parseVideoLink, ytThumb, ytEmbed } from '../lib/videos.js'
 
 const MAX_MB = 200
 const text = (v, lang) => (typeof v === 'object' && v ? v[lang] || v.en : v || '')
 
-// Resolves a lesson to something playable (uploaded files come from IndexedDB).
-function useSource(lesson) {
-  const [src, setSrc] = useState(lesson.kind === 'stored' ? null : lesson.src)
-  useEffect(() => {
-    if (lesson.kind !== 'stored') return
-    let url
-    loadFile(lesson.id).then((blob) => { if (blob) { url = URL.createObjectURL(blob); setSrc(url) } }).catch(() => {})
-    return () => url && URL.revokeObjectURL(url)
-  }, [lesson])
-  return src
-}
-
 export function Player({ lesson, autoPlay }) {
-  const src = useSource(lesson)
   if (lesson.kind === 'youtube') {
     return (
       <div className="player">
@@ -29,7 +16,7 @@ export function Player({ lesson, autoPlay }) {
   }
   return (
     <div className="player">
-      {src && <video src={src} poster={lesson.poster} controls autoPlay={autoPlay} playsInline preload="metadata" />}
+      <video src={lesson.src} poster={lesson.poster} controls autoPlay={autoPlay} playsInline preload="metadata" />
     </div>
   )
 }
@@ -44,16 +31,14 @@ function Thumb({ lesson }) {
   )
 }
 
-export default function Learn({ t, lang, lessons, setLessons }) {
-  const all = [...SEED_LESSONS, ...lessons]
+// Lessons come from the server, so a video one member adds is seen by everyone.
+export default function Learn({ t, lang, lessons, onAddLink, onUpload, onDelete }) {
   const [playing, setPlaying] = useState(null)
   const [adding, setAdding] = useState(false)
 
   const remove = async (l) => {
     if (!window.confirm(t('learn_delete_confirm'))) return
-    if (l.kind === 'stored') await deleteFile(l.id).catch(() => {})
-    setLessons((list) => list.filter((x) => x.id !== l.id))
-    setPlaying(null)
+    try { await onDelete(l.id); setPlaying(null) } catch { window.alert(t('save_error')) }
   }
 
   return (
@@ -63,7 +48,7 @@ export default function Learn({ t, lang, lessons, setLessons }) {
       </PageHead>
 
       <div className="lesson-grid">
-        {all.map((l) => (
+        {lessons.map((l) => (
           <button key={l.id} className="lesson-card" onClick={() => setPlaying(l)}>
             <Thumb lesson={l} />
             <div className="lesson-info">
@@ -84,12 +69,12 @@ export default function Learn({ t, lang, lessons, setLessons }) {
         </Sheet>
       )}
 
-      {adding && <AddLesson t={t} onCancel={() => setAdding(false)} onAdd={(l) => { setLessons((list) => [l, ...list]); setAdding(false) }} />}
+      {adding && <AddLesson t={t} onCancel={() => setAdding(false)} onAddLink={onAddLink} onUpload={onUpload} onDone={() => setAdding(false)} />}
     </main>
   )
 }
 
-function AddLesson({ t, onCancel, onAdd }) {
+function AddLesson({ t, onCancel, onAddLink, onUpload, onDone }) {
   const [mode, setMode] = useState('link')
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
@@ -113,12 +98,18 @@ function AddLesson({ t, onCancel, onAdd }) {
 
   const save = async () => {
     if (!ready || saving) return
-    const id = `v${Date.now()}`
-    if (mode === 'link') return onAdd({ id, kind: parsed.kind, src: parsed.src, title: title.trim(), desc: desc.trim() })
-    setSaving(true)
+    setSaving(true); setError('')
     try {
-      await saveFile(id, file)
-      onAdd({ id, kind: 'stored', title: title.trim(), desc: desc.trim() })
+      if (mode === 'link') {
+        await onAddLink({ kind: parsed.kind, src: parsed.src, title: title.trim(), desc: desc.trim() })
+      } else {
+        const form = new FormData()
+        form.append('title', title.trim())
+        form.append('desc', desc.trim())
+        form.append('video', file)
+        await onUpload(form)
+      }
+      onDone()
     } catch {
       setError(t('learn_err_save'))
       setSaving(false)
@@ -160,7 +151,7 @@ function AddLesson({ t, onCancel, onAdd }) {
         </div>
       </div>
 
-      {mode === 'link' && parsed && <div style={{ marginTop: 16 }}><Player lesson={{ id: 'preview', ...parsed, title }} /></div>}
+      {mode === 'link' && parsed && <div style={{ marginTop: 16 }}><Player lesson={{ ...parsed, title }} /></div>}
       {error && <p className="error-text" role="alert" style={{ margin: '12px 4px' }}>{error}</p>}
 
       <div className="stack">
