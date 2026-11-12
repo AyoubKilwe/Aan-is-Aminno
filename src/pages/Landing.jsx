@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx'
 import Logo from '../components/Logo.jsx'
 import { HagbadRing, TrustRing } from '../components/Rings.jsx'
 import { Segmented } from '../components/UI.jsx'
+import AIWidget from '../components/AIWidget.jsx'
 
 const COPY = {
   en: {
@@ -274,6 +275,8 @@ export default function Landing({ lang, setLang }) {
           </div>
         </div>
       </section>
+
+      <AIWidget lang={lang} />
 
       <footer className="l-footer">
         <div className="l-container l-footer-inner">

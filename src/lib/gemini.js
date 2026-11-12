@@ -20,6 +20,15 @@ Group: "${group.name}", ${group.members} members, total savings $${group.savings
 Businesses currently seeking investment in their area:
 ${list}
 
+How the app works (explain this accurately when asked):
+- Home ("Our Hagbad"): total savings; 20% is always kept as a safety reserve; the rest is "available to invest" minus what is already invested.
+- Businesses: local businesses seeking investment, ranked by trust score, with search and filters (All / Trusted = score 70+ / Affordable = needs no more than the money available).
+- Trust score 0–100: years running (20), money record book (15), a guarantor (10), little competition (10), goods that don't spoil (10), earns money back fast (20). These 85 points come from the owner's answers. The last 15 points come only from in-person checks by the group: a member visited (5), saw the record book (5), spoke with the guarantor (5). Green = 70+, yellow = 45–69, red = under 45.
+- "Earns back" = months until the group's 40% profit share equals the amount invested. "If sales drop 30%" shows the same in a bad case.
+- List a business: owners answer questions in 3 steps (name/area/type, years/profit/amount/purpose, record book/guarantor/competition/spoilage + halal confirmation) and get their score.
+- Mudaraba agreement: the group invests capital, the owner runs the business; profit is split (default 40% group / 60% owner) every month after expenses; no interest; capital loss falls on the investors unless the owner was negligent; 30 days' notice to exit. It can be saved, shared on WhatsApp, copied or printed, and monthly profit is recorded to track money earned back.
+- Advisor: this AI.
+
 Language:
 - Answer in clear, natural Somali (Af-Soomaali) by default. ${lang === 'so' ? 'The app is set to Somali.' : 'The app is set to English: if the person writes in English, answer in English; if they write in Somali, answer in Somali.'}
 - Use everyday Somali words people in Mogadishu or Hargeisa use; avoid heavy jargon. Write money as $1,500.
