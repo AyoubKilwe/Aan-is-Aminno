@@ -4,6 +4,8 @@ import Logo from '../components/Logo.jsx'
 import { HagbadRing, TrustRing } from '../components/Rings.jsx'
 import { Segmented } from '../components/UI.jsx'
 import AIWidget from '../components/AIWidget.jsx'
+import { Player } from './Learn.jsx'
+import { SEED_LESSONS } from '../lib/videos.js'
 
 const COPY = {
   en: {
@@ -61,6 +63,11 @@ const COPY = {
     t_demo: 'Nasra Tailoring',
     t_l1: 'Running 3+ years', t_l2: 'Keeps a money record book', t_l3: 'Earns back within 12 months', t_l4: 'Verified in person (2 of 3)',
 
+    v_kicker: 'Learn',
+    v_title: 'Short lessons for every member',
+    v_sub: 'Watch, learn, and add your own videos for your group.',
+    v_more: 'See all lessons',
+    nav_learn: 'Learn',
     c_title: 'Put your hagbad to work',
     c_sub: 'Open the app, enter your group’s savings, and compare the businesses near you.',
     c_btn: 'Open the app',
@@ -121,6 +128,11 @@ const COPY = {
     t_demo: 'Nasra Tailoring',
     t_l1: 'Wuxuu shaqaynayay 3+ sano', t_l2: 'Wuxuu hayaa buug lacageed', t_l3: 'Soo celin 12 bilood gudahood', t_l4: 'Si toos ah loo hubiyay (2 ee 3)',
 
+    v_kicker: 'Baro',
+    v_title: 'Casharro gaaban oo xubin kasta ah',
+    v_sub: 'Daawo, baro, oo kooxdaada ugu dar muuqaallo kale.',
+    v_more: 'Eeg casharrada oo dhan',
+    nav_learn: 'Baro',
     c_title: 'Hagbaddiinna ha shaqayso',
     c_sub: 'Fur app-ka, geli lacagta kooxda, oo isbarbardhig ganacsiyada kuu dhow.',
     c_btn: 'Fur app-ka',
@@ -148,6 +160,7 @@ export default function Landing({ lang, setLang }) {
             <a href="#how" onClick={(e) => { e.preventDefault(); document.getElementById('how')?.scrollIntoView() }}>{c.nav_how}</a>
             <a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView() }}>{c.nav_features}</a>
             <a href="#trust" onClick={(e) => { e.preventDefault(); document.getElementById('trust')?.scrollIntoView() }}>{c.nav_trust}</a>
+            <a href="#learn" onClick={(e) => { e.preventDefault(); document.getElementById('learn')?.scrollIntoView() }}>{c.nav_learn}</a>
           </nav>
           <div className="l-nav-end">
             <Segmented label="Language" value={lang} onChange={setLang} options={[{ value: 'en', label: 'EN' }, { value: 'so', label: 'SO' }]} />
@@ -266,7 +279,28 @@ export default function Landing({ lang, setLang }) {
         </div>
       </section>
 
-      <section className="l-section" style={{ paddingTop: 0 }}>
+      <section className="l-section alt" id="learn">
+        <div className="l-container">
+          <div className="l-head">
+            <div className="l-kicker">{c.v_kicker}</div>
+            <h2 className="l-h2">{c.v_title}</h2>
+            <p className="l-sub">{c.v_sub}</p>
+          </div>
+          <div className="l-videos">
+            {SEED_LESSONS.map((l) => (
+              <div key={l.id} className="l-video">
+                <Player lesson={l} />
+                <div className="l-video-text"><h3>{l.title[lang] || l.title.en}</h3><p>{l.desc[lang] || l.desc.en}</p></div>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 28 }}>
+            <button className="btn btn-tinted btn-lg btn-auto" onClick={() => { window.location.hash = '#/app/learn' }}><Icon name="play" size={20} /> {c.v_more}</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="l-section" style={{ paddingTop: 72 }}>
         <div className="l-container">
           <div className="l-cta-band">
             <h2 className="l-h2">{c.c_title}</h2>

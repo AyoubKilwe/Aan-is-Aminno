@@ -24,6 +24,9 @@ import Advisor from './pages/Advisor.jsx'
 import Agreements from './pages/Agreements.jsx'
 import AgreementDetail from './pages/AgreementDetail.jsx'
 import AgreementSheet from './pages/AgreementSheet.jsx'
+import Learn from './pages/Learn.jsx'
+
+const TAB_IDS = ['home', 'biz', 'advisor', 'agr', 'learn']
 
 export default function App() {
   const route = useRoute()
@@ -38,9 +41,14 @@ function AppMain({ lang, setLang }) {
   const [businesses, setBusinesses] = usePersisted('aia_businesses_v3', SEED_BUSINESSES)
   const [agreements, setAgreements] = usePersisted('aia_agreements_v1', [])
   const [chat, setChat] = usePersisted('aia_chat_v2', [])
+  const [lessons, setLessons] = usePersisted('aia_lessons_v1', [])
 
   // Navigation: one tab bar, a pushed detail view per tab, and at most one sheet.
-  const [tab, setTab] = useState('home')
+  // "#/app/learn" opens a tab directly (used by the landing page).
+  const [tab, setTab] = useState(() => {
+    const id = window.location.hash.split('/')[2]
+    return TAB_IDS.includes(id) ? id : 'home'
+  })
   const [detail, setDetail] = useState({}) // { biz: id, agr: id }
   const [sheet, setSheet] = useState(null) // { type: 'register' } | { type: 'agreement', bizId }
   const [pendingQuestion, setPendingQuestion] = useState(null)
@@ -113,6 +121,8 @@ function AppMain({ lang, setLang }) {
           }
         />
       )}
+
+      {tab === 'learn' && <Learn t={t} lang={lang} lessons={lessons} setLessons={setLessons} />}
 
       <TabBar t={t} tab={tab} onTab={onTab} />
 

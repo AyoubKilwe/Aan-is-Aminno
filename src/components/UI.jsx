@@ -7,6 +7,7 @@ export const TABS = [
   { id: 'biz', icon: 'store', key: 'tab_biz' },
   { id: 'advisor', icon: 'advisor', key: 'tab_advisor' },
   { id: 'agr', icon: 'doc', key: 'tab_agr' },
+  { id: 'learn', icon: 'play', key: 'tab_learn' },
 ]
 
 // Top bar of the app: logo, section links on desktop, language switch.
