@@ -63,8 +63,10 @@ a { color: var(--primary); }
 
 /* Logo */
 .logo { display: inline-flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; color: var(--text); text-decoration: none; }
-.logo-word { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-.logo-word b { font-weight: 800; color: var(--primary); }
+.wordmark { display: block; width: auto; color: #0d2a1f; overflow: visible; }
+.wordmark .wm-accent { fill: #6fae2e; }
+.wordmark .wm-swoosh { stroke: #6fae2e; }
+.logo { cursor: default; } button.logo { cursor: pointer; }
 
 /* Buttons */
 .btn {
@@ -304,7 +306,7 @@ input[type='range'] { width: 100%; accent-color: var(--primary); min-height: 32p
   .app-nav { display: flex; }
   .large-title { font-size: 32px; }
 }
-@media (max-width: 420px) { .logo-word { font-size: 16px; } .logo { gap: 8px; } }
+@media (max-width: 420px) { .logo .wordmark { height: 38px; } }
 
 /* ───────────── Landing page ───────────── */
 .landing { background: #fff; }

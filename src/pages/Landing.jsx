@@ -1,11 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
-import Logo from '../components/Logo.jsx'
+import Logo, { Wordmark } from '../components/Logo.jsx'
 import { HagbadRing, TrustRing } from '../components/Rings.jsx'
 import { Segmented } from '../components/UI.jsx'
 import AIWidget from '../components/AIWidget.jsx'
 import { Player } from './Learn.jsx'
 import { SEED_LESSONS } from '../lib/videos.js'
+import './landing.css'
+import { Coin, Shield3D, Leaf3D, Spark, Scribble, CountUp, Words, Intro, useIntro, usePointerVars, useCardTilt } from '../components/Motion3D.jsx'
+
+// Display font for the landing page headlines (loaded once).
+if (typeof document !== 'undefined' && !document.getElementById('lx-font')) {
+  const l = document.createElement('link')
+  l.id = 'lx-font'; l.rel = 'stylesheet'
+  l.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
+  document.head.appendChild(l)
+}
 
 const COPY = {
   en: {
@@ -72,6 +82,8 @@ const COPY = {
     c_sub: 'Open the app, enter your group’s savings, and compare the businesses near you.',
     c_btn: 'Open the app',
     footer: 'Built for women’s savings groups in Somalia. Demo data shown is sample data.',
+    st1: 'kept aside as a safety reserve', st2: 'trust score, every point explained', st3: 'steps from savings to a signed deal',
+    ft_tag: 'Halal investing for women’s savings groups.', ft_app: 'App', ft_rights: 'Hackathon project · 2026',
   },
   so: {
     nav_how: 'Sida uu u shaqeeyo',
@@ -137,186 +149,264 @@ const COPY = {
     c_sub: 'Fur app-ka, geli lacagta kooxda, oo isbarbardhig ganacsiyada kuu dhow.',
     c_btn: 'Fur app-ka',
     footer: 'Waxaa loo dhisay kooxaha hagbadda haweenka Soomaaliyeed. Xogta muuqata waa tusaale.',
+    st1: 'loo dhigo kayd badbaado', st2: 'dhibcaha kalsoonida, dhibic kastaa sabab leh', st3: 'tallaabo, kayd ilaa heshiis la saxiixay',
+    ft_tag: 'Maalgelin xalaal ah oo loogu talagalay kooxaha hagbadda haweenka.', ft_app: 'App-ka', ft_rights: 'Mashruuc hackathon · 2026',
   },
 }
 
 const openApp = () => { window.location.hash = '#/app' }
+const scrollTo = (id) => (e) => { e?.preventDefault(); document.getElementById(id)?.scrollIntoView() }
 
 export default function Landing({ lang, setLang }) {
   const c = COPY[lang] || COPY.en
   const [scrolled, setScrolled] = useState(false)
+  const heroRef = usePointerVars()
+  const [intro, endIntro] = useIntro()
+  const pageRef = useRef(null)
+  useCardTilt(pageRef, '.lx-card, .lx-step, .lx-score')
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', on, { passive: true })
     return () => window.removeEventListener('scroll', on)
   }, [])
+  // Cards fade up gently as they scroll into view (skipped when the phone asks for less motion).
+  useEffect(() => {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const root = document.querySelector('.lx')
+    root?.classList.add('lx-anim')
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) }
+    }), { rootMargin: '0px 0px -8% 0px' })
+    root?.querySelectorAll('.lx-card, .lx-step, .lx-score, .lx-video, .lx-band, .lx-head, .lx-split .lx-h2').forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [])
 
   return (
-    <div className="landing">
-      <header className={`l-nav ${scrolled ? 'scrolled' : ''}`}>
-        <div className="l-container l-nav-inner">
-          <Logo size={36} />
-          <nav className="l-links">
-            <a href="#how" onClick={(e) => { e.preventDefault(); document.getElementById('how')?.scrollIntoView() }}>{c.nav_how}</a>
-            <a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView() }}>{c.nav_features}</a>
-            <a href="#trust" onClick={(e) => { e.preventDefault(); document.getElementById('trust')?.scrollIntoView() }}>{c.nav_trust}</a>
-            <a href="#learn" onClick={(e) => { e.preventDefault(); document.getElementById('learn')?.scrollIntoView() }}>{c.nav_learn}</a>
+    <div className={`lx ${intro ? 'lx-intro-on' : ''}`} ref={pageRef}>
+      {intro && <Intro onDone={endIntro}><Wordmark height={120} /></Intro>}
+      <header className={`lx-nav ${scrolled ? 'scrolled' : ''}`}>
+        <div className="lx-wrap lx-nav-inner">
+          <Logo size={34} />
+          <nav className="lx-links">
+            <a href="#how" onClick={scrollTo('how')}>{c.nav_how}</a>
+            <a href="#features" onClick={scrollTo('features')}>{c.nav_features}</a>
+            <a href="#trust" onClick={scrollTo('trust')}>{c.nav_trust}</a>
+            <a href="#learn" onClick={scrollTo('learn')}>{c.nav_learn}</a>
           </nav>
-          <div className="l-nav-end">
+          <div className="lx-nav-end">
             <Segmented label="Language" value={lang} onChange={setLang} options={[{ value: 'en', label: 'EN' }, { value: 'so', label: 'SO' }]} />
-            <button className="btn btn-primary btn-auto" onClick={openApp}>{c.open}</button>
+            <button className="lx-btn dark lx-hide-sm" onClick={openApp}>{c.open}</button>
           </div>
         </div>
       </header>
 
-      <section className="l-hero">
-        <div className="l-container l-hero-grid">
-          <div>
-            <span className="eyebrow"><Icon name="users" size={16} /> {c.eyebrow}</span>
-            <h1 className="l-h1">{c.h1a}<br /><em>{c.h1b}</em></h1>
-            <p className="l-lead">{c.lead}</p>
-            <div className="l-cta">
-              <button className="btn btn-primary btn-lg btn-auto" onClick={openApp}>{c.cta} <Icon name="chevron" size={18} /></button>
-              <button className="btn btn-tinted btn-lg btn-auto" onClick={() => document.getElementById('how')?.scrollIntoView()}>{c.cta2}</button>
-            </div>
-            <div className="l-proof">
-              <span><Icon name="shield" size={18} /> {c.proof1}</span>
-              <span><Icon name="advisor" size={18} /> {c.proof2}</span>
-              <span><Icon name="check" size={18} /> {c.proof3}</span>
-            </div>
-          </div>
+      {/* ── Hero ── */}
+      <section className="lx-wrap">
+        <div className="lx-hero" ref={heroRef}>
+          <div className="lx-watermark" aria-hidden="true">HAGBAD</div>
+          <div className="lx-moss a" aria-hidden="true" />
+          <div className="lx-moss b" aria-hidden="true" />
 
-          <div style={{ position: 'relative' }}>
-            <div className="phone" aria-hidden="true">
-              <div className="phone-screen">
-                <div className="phone-notch" />
-                <div style={{ fontWeight: 800, fontSize: 20, margin: '4px 2px 10px' }}>{c.m_title}</div>
-                <div className="hero">
-                  <HagbadRing members={10} committedRatio={0.3}>
-                    <div className="hagbad-amount" style={{ fontSize: 24 }}>$2,500</div>
-                    <div className="hagbad-label">{c.m_avail}</div>
-                  </HagbadRing>
-                  <dl className="legend">
-                    <div><dt>{c.m_sav}</dt><dd>$5,000</dd></div>
-                    <div><dt>{c.m_inv}</dt><dd>$1,500</dd></div>
-                    <div><dt>{c.m_res}</dt><dd>$1,000</dd></div>
-                  </dl>
-                </div>
-                <div className="mini-biz"><TrustRing score={95} level="green" size={40} stroke={5} /><div><b>{c.m_b1}</b><span>{c.m_b1s}</span></div></div>
-                <div className="mini-biz"><TrustRing score={75} level="green" size={40} stroke={5} /><div><b>{c.m_b2}</b><span>{c.m_b2s}</span></div></div>
+          <div className="lx-hero-grid">
+            <div className="lx-hero-text">
+              <span className="lx-tag lime">{c.eyebrow}</span>
+              <h1 className="lx-h1"><span className="l1"><Words text={c.h1a} /></span> <span className="l2"><Words text={c.h1b} base={c.h1a.split(' ').length} /></span><Scribble className="lx-scribble" /><span className="lx-doodle" aria-hidden="true"><i /><i /><i /></span></h1>
+              <p className="lx-lead">{c.lead}</p>
+              <div className="lx-cta">
+                <button className="lx-btn dark lg" onClick={openApp}>{c.cta} <span className="lx-arrow"><Icon name="chevron" size={16} /></span></button>
+                <button className="lx-btn ghost lg" onClick={scrollTo('how')}>{c.cta2}</button>
               </div>
             </div>
-            <div className="float-card" style={{ top: 70, left: -10 }}><Icon name="shield" size={22} /><div><b>{c.float1}</b>{c.float1b}</div></div>
-            <div className="float-card" style={{ bottom: 70, right: -10 }}><Icon name="doc" size={22} /><div><b>{c.float2}</b>{c.float2b}</div></div>
-          </div>
-        </div>
-      </section>
 
-      <section className="l-section alt">
-        <div className="l-container">
-          <div className="l-head">
-            <div className="l-kicker">{c.p_kicker}</div>
-            <h2 className="l-h2">{c.p_title}</h2>
-          </div>
-          <div className="l-problem">
-            {[['search', c.p1t, c.p1], ['warn', c.p2t, c.p2], ['users', c.p3t, c.p3]].map(([ic, h, p]) => (
-              <div key={h} className="l-stat"><Icon name={ic} size={26} /><h3>{h}</h3><p>{p}</p></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="l-section" id="how">
-        <div className="l-container">
-          <div className="l-head">
-            <div className="l-kicker">{c.h_kicker}</div>
-            <h2 className="l-h2">{c.h_title}</h2>
-          </div>
-          <div className="l-steps">
-            {[[c.s1t, c.s1], [c.s2t, c.s2], [c.s3t, c.s3], [c.s4t, c.s4]].map(([h, p], i) => (
-              <div key={h} className="l-step"><div className="l-step-num">{i + 1}</div><h3>{h}</h3><p>{p}</p></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="l-section alt" id="features">
-        <div className="l-container">
-          <div className="l-head">
-            <div className="l-kicker">{c.f_kicker}</div>
-            <h2 className="l-h2">{c.f_title}</h2>
-          </div>
-          <div className="l-features">
-            {[['shield', c.f1t, c.f1], ['trend', c.f2t, c.f2], ['coins', c.f3t, c.f3], ['sparkle', c.f4t, c.f4], ['doc', c.f5t, c.f5], ['eye', c.f6t, c.f6]].map(([ic, h, p]) => (
-              <div key={h} className="l-feature"><div className="l-ficon"><Icon name={ic} size={24} /></div><h3>{h}</h3><p>{p}</p></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="l-section" id="trust">
-        <div className="l-container l-split">
-          <div>
-            <div className="l-head">
-              <div className="l-kicker">{c.t_kicker}</div>
-              <h2 className="l-h2">{c.t_title}</h2>
-              <p className="l-sub">{c.t_sub}</p>
+            <div className="lx-hero-art">
+              <svg className="lx-orbit" viewBox="0 0 400 400" aria-hidden="true">
+                <circle cx="200" cy="200" r="186" fill="none" stroke="currentColor" strokeOpacity="0.14" strokeDasharray="2 8" />
+                <circle cx="200" cy="200" r="140" fill="none" stroke="currentColor" strokeOpacity="0.1" />
+                <circle className="lx-beam" cx="200" cy="200" r="186" pathLength="100" />
+                <circle className="lx-beam rev" cx="200" cy="200" r="140" pathLength="100" />
+                {Array.from({ length: 12 }, (_, i) => {
+                  const a = (i / 12) * 2 * Math.PI - Math.PI / 2
+                  return <circle key={i} cx={200 + 186 * Math.cos(a)} cy={200 + 186 * Math.sin(a)} r={i % 3 === 0 ? 7 : 4.5} className={i % 3 === 0 ? 'lime' : ''} />
+                })}
+              </svg>
+              <div className="lx-float lx-p1" aria-hidden="true"><div className="lx-bob"><Coin size={76} /></div></div>
+              <div className="lx-float lx-p2" aria-hidden="true"><div className="lx-bob slow"><Coin size={50} /></div></div>
+              <div className="lx-float lx-p3" aria-hidden="true"><div className="lx-bob"><Shield3D size={82} /></div></div>
+              <div className="lx-float lx-p4" aria-hidden="true"><div className="lx-bob fast"><Leaf3D size={60} /></div></div>
+              <div className="lx-float lx-p5" aria-hidden="true"><div className="lx-twinkle"><Spark size={30} /></div></div>
+              <div className="lx-float lx-p6" aria-hidden="true"><div className="lx-twinkle late"><Spark size={20} color="#fbbf24" /></div></div>
+              <div className="lx-tilt">
+              <div className="phone" aria-hidden="true">
+                <div className="phone-screen">
+                  <div className="phone-notch" />
+                  <div style={{ fontWeight: 800, fontSize: 20, margin: '4px 2px 10px' }}>{c.m_title}</div>
+                  <div className="hero">
+                    <HagbadRing members={10} committedRatio={0.3}>
+                      <div className="hagbad-amount" style={{ fontSize: 24 }}>$2,500</div>
+                      <div className="hagbad-label">{c.m_avail}</div>
+                    </HagbadRing>
+                    <dl className="legend">
+                      <div><dt>{c.m_sav}</dt><dd>$5,000</dd></div>
+                      <div><dt>{c.m_inv}</dt><dd>$1,500</dd></div>
+                      <div><dt>{c.m_res}</dt><dd>$1,000</dd></div>
+                    </dl>
+                  </div>
+                  <div className="mini-biz"><TrustRing score={95} level="green" size={40} stroke={5} /><div><b>{c.m_b1}</b><span>{c.m_b1s}</span></div></div>
+                  <div className="mini-biz"><TrustRing score={75} level="green" size={40} stroke={5} /><div><b>{c.m_b2}</b><span>{c.m_b2s}</span></div></div>
+                </div>
+              </div>
+              </div>
+              <div className="lx-chip top"><TrustRing score={95} level="green" size={40} stroke={5} /><div><b>{c.t_demo}</b><span>{c.float1b}</span></div></div>
+              <div className="lx-chip bottom"><span className="lx-chip-ic"><Icon name="doc" size={18} /></span><div><b>{c.float2}</b><span>{c.float2b}</span></div></div>
             </div>
-            <ul className="l-checks">
-              {[c.t1, c.t2, c.t3].map((x) => <li key={x}><Icon name="check" size={20} /> {x}</li>)}
+          </div>
+
+          <div className="lx-hero-foot">
+            <div className="lx-stats">
+              <div><CountUp to={20} suffix="%" ready={!intro} /><span>{c.st1}</span></div>
+              <div><CountUp to={100} prefix="0–" ready={!intro} /><span>{c.st2}</span></div>
+              <div><CountUp to={4} ms={900} ready={!intro} /><span>{c.st3}</span></div>
+            </div>
+            <div className="lx-proof">
+              <span><Icon name="shield" size={16} /> {c.proof1}</span>
+              <span><Icon name="advisor" size={16} /> {c.proof2}</span>
+              <span><Icon name="check" size={16} /> {c.proof3}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Problem ── */}
+      <section className="lx-section">
+        <div className="lx-wrap">
+          <div className="lx-head">
+            <span className="lx-tag">{c.p_kicker}</span>
+            <h2 className="lx-h2"><Words text={c.p_title} /></h2>
+          </div>
+          <div className="lx-cards three">
+            {[['search', c.p1t, c.p1], ['warn', c.p2t, c.p2], ['users', c.p3t, c.p3]].map(([ic, h, p], i) => (
+              <div key={h} className={`lx-card ${i === 2 ? 'dark' : ''}`}>
+                <span className="lx-pill-num">0{i + 1}</span>
+                <div className="lx-card-ic"><Icon name={ic} size={30} /></div>
+                <h3>{h}</h3>
+                <p>{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className="lx-section" id="how">
+        <div className="lx-wrap">
+          <div className="lx-head">
+            <span className="lx-tag">{c.h_kicker}</span>
+            <h2 className="lx-h2"><Words text={c.h_title} /></h2>
+          </div>
+          <div className="lx-steps">
+            {[[c.s1t, c.s1], [c.s2t, c.s2], [c.s3t, c.s3], [c.s4t, c.s4]].map(([h, p], i) => (
+              <div key={h} className="lx-step">
+                <div className="lx-step-num">0{i + 1}</div>
+                <h3>{h}</h3>
+                <p>{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="lx-section lx-forest" id="features">
+        <div className="lx-wrap">
+          <div className="lx-head">
+            <span className="lx-tag">{c.f_kicker}</span>
+            <h2 className="lx-h2"><Words text={c.f_title} /></h2>
+          </div>
+          <div className="lx-cards">
+            {[['shield', c.f1t, c.f1], ['trend', c.f2t, c.f2], ['coins', c.f3t, c.f3], ['sparkle', c.f4t, c.f4], ['doc', c.f5t, c.f5], ['eye', c.f6t, c.f6]].map(([ic, h, p], i) => (
+              <div key={h} className={`lx-card ${i === 3 ? 'dark' : ''}`}>
+                <div className="lx-card-ic"><Icon name={ic} size={28} /></div>
+                <h3>{h}</h3>
+                <p>{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust score ── */}
+      <section className="lx-section" id="trust">
+        <div className="lx-wrap lx-split">
+          <div>
+            <span className="lx-tag">{c.t_kicker}</span>
+            <h2 className="lx-h2 left"><Words text={c.t_title} /></h2>
+            <p className="lx-sub">{c.t_sub}</p>
+            <ul className="lx-checks">
+              {[c.t1, c.t2, c.t3].map((x) => <li key={x}><span><Icon name="check" size={16} /></span>{x}</li>)}
             </ul>
           </div>
-          <div className="score-demo">
-            <div className="score-demo-head">
+          <div className="lx-score">
+            <div className="lx-score-head">
               <TrustRing score={95} level="green" size={72} stroke={7} />
-              <div><div className="headline">{c.t_demo}</div><div className="footnote">Wadajir</div></div>
+              <div><b>{c.t_demo}</b><span>Wadajir</span></div>
+              <span className="lx-tag lime small">95 / 100</span>
             </div>
-            <div className="score-line"><span><Icon name="check" size={18} /> {c.t_l1}</span><b>20/20</b></div>
-            <div className="score-line"><span><Icon name="check" size={18} /> {c.t_l2}</span><b>15/15</b></div>
-            <div className="score-line"><span><Icon name="check" size={18} /> {c.t_l3}</span><b>20/20</b></div>
-            <div className="score-line locked"><span><Icon name="shield" size={18} /> {c.t_l4}</span><b>10/15</b></div>
+            {[[c.t_l1, '20/20'], [c.t_l2, '15/15'], [c.t_l3, '20/20']].map(([l, v]) => (
+              <div key={l} className="lx-score-line"><span><Icon name="check" size={16} /> {l}</span><b>{v}</b></div>
+            ))}
+            <div className="lx-score-line locked"><span><Icon name="shield" size={16} /> {c.t_l4}</span><b>10/15</b></div>
           </div>
         </div>
       </section>
 
-      <section className="l-section alt" id="learn">
-        <div className="l-container">
-          <div className="l-head">
-            <div className="l-kicker">{c.v_kicker}</div>
-            <h2 className="l-h2">{c.v_title}</h2>
-            <p className="l-sub">{c.v_sub}</p>
+      {/* ── Learn ── */}
+      <section className="lx-section" id="learn">
+        <div className="lx-wrap">
+          <div className="lx-head">
+            <span className="lx-tag">{c.v_kicker}</span>
+            <h2 className="lx-h2"><Words text={c.v_title} /></h2>
+            <p className="lx-sub">{c.v_sub}</p>
           </div>
-          <div className="l-videos">
+          <div className="lx-videos">
             {SEED_LESSONS.slice(0, 2).map((l) => (
-              <div key={l.id} className="l-video">
+              <div key={l.id} className="lx-video">
                 <Player lesson={l} />
-                <div className="l-video-text"><h3>{l.title[lang] || l.title.en}</h3><p>{l.desc[lang] || l.desc.en}</p></div>
+                <div className="lx-video-text"><h3>{l.title[lang] || l.title.en}</h3><p>{l.desc[lang] || l.desc.en}</p></div>
               </div>
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: 28 }}>
-            <button className="btn btn-tinted btn-lg btn-auto" onClick={() => { window.location.hash = '#/app/learn' }}><Icon name="play" size={20} /> {c.v_more}</button>
+            <button className="lx-btn ghost lg" onClick={() => { window.location.hash = '#/app/learn' }}><Icon name="play" size={18} /> {c.v_more}</button>
           </div>
         </div>
       </section>
 
-      <section className="l-section" style={{ paddingTop: 72 }}>
-        <div className="l-container">
-          <div className="l-cta-band">
-            <h2 className="l-h2">{c.c_title}</h2>
+      {/* ── Call to action ── */}
+      <section className="lx-section">
+        <div className="lx-wrap">
+          <div className="lx-band">
+            <div className="lx-moss b" aria-hidden="true" />
+            <h2><Words text={c.c_title} /></h2>
             <p>{c.c_sub}</p>
-            <button className="btn btn-white btn-lg btn-auto" onClick={openApp}>{c.c_btn} <Icon name="chevron" size={18} /></button>
+            <button className="lx-btn lime lg" onClick={openApp}>{c.c_btn} <span className="lx-arrow dark"><Icon name="chevron" size={16} /></span></button>
           </div>
         </div>
       </section>
 
       <AIWidget lang={lang} />
 
-      <footer className="l-footer">
-        <div className="l-container l-footer-inner">
-          <Logo size={28} />
-          <span>{c.footer}</span>
+      <footer className="lx-wrap lx-footer">
+        <div className="lx-footer-top">
+          <div className="lx-footer-brand"><Logo size={32} /><p>{c.ft_tag}</p></div>
+          <nav className="lx-footer-links">
+            <a href="#how" onClick={scrollTo('how')}>{c.nav_how}</a>
+            <a href="#features" onClick={scrollTo('features')}>{c.nav_features}</a>
+            <a href="#trust" onClick={scrollTo('trust')}>{c.nav_trust}</a>
+            <a href="#learn" onClick={scrollTo('learn')}>{c.nav_learn}</a>
+            <a href="#/app" onClick={(e) => { e.preventDefault(); openApp() }}>{c.ft_app}</a>
+          </nav>
         </div>
+        <div className="lx-footer-bottom"><span>{c.footer}</span><span>{c.ft_rights}</span></div>
       </footer>
     </div>
   )
